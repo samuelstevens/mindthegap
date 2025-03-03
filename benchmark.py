@@ -11,7 +11,7 @@ import beartype
 import submitit
 import tyro
 
-from biobench import config, newt, reporting
+from small_data_metrics import config, newt, reporting
 
 log_format = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
 logging.basicConfig(level=logging.INFO, format=log_format)

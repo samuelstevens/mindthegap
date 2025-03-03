@@ -1,4 +1,4 @@
-# biobench/cvml.py
+# small_data_metrics/cvml.py
 
 ```python
 """
@@ -99,7 +99,7 @@ def list_vision_backbones() -> list[str]:
 
 ```
 
-# biobench/config.py
+# small_data_metrics/config.py
 
 ```python
 import dataclasses
@@ -244,7 +244,7 @@ def load(path: str) -> list[Experiment]:
 
 ```
 
-# biobench/simpleshot.py
+# small_data_metrics/simpleshot.py
 
 ```python
 """
@@ -355,7 +355,7 @@ def simpleshot(
 
 ```
 
-# biobench/third_party_models.py
+# small_data_metrics/third_party_models.py
 
 ```python
 import logging
@@ -365,7 +365,7 @@ import beartype
 from jaxtyping import Float, jaxtyped
 from torch import Tensor
 
-from biobench import cvml
+from . import cvml
 
 logger = logging.getLogger("third_party")
 
@@ -373,7 +373,7 @@ logger = logging.getLogger("third_party")
 @beartype.beartype
 def get_cache_dir() -> str:
     cache_dir = ""
-    for var in ("BIOBENCH_CACHE", "HF_HOME", "HF_HUB_CACHE"):
+    for var in ("SMALL_DATA_METRICS_CACHE", "HF_HOME", "HF_HUB_CACHE"):
         cache_dir = cache_dir or os.environ.get(var, "")
     return cache_dir or "."
 
@@ -501,7 +501,7 @@ class TorchvisionModel(cvml.VisionBackbone):
 
 ```
 
-# biobench/__init__.py
+# small_data_metrics/__init__.py
 
 ```python
 """ """
@@ -513,7 +513,7 @@ cvml.register_vision_backbone("open-clip", third_party_models.OpenClip)
 
 ```
 
-# biobench/mllms.py
+# small_data_metrics/mllms.py
 
 ```python
 import asyncio
@@ -825,6 +825,16 @@ register_mllm(
 )
 register_mllm(
     "openrouter",
+    Mllm(
+        "meta-llama/llama-3.2-11b-vision-instruct",
+        16_384,
+        0.055,
+        0.055,
+        ["fp32", "bf16"],
+    ),
+)
+register_mllm(
+    "openrouter",
     Mllm("qwen/qwen-2-vl-7b-instruct", 4096, 0.1, 0.1, ["fp32", "bf16"]),
 )
 
@@ -838,10 +848,14 @@ register_mllm(
     "openrouter",
     Mllm("google/gemini-2.0-flash-lite-001", 1_000_000, 0.075, 0.3),
 )
+register_mllm(
+    "openrouter",
+    Mllm("openai/gpt-4o-mini-2024-07-18", 128_000, 0.15, 0.6),
+)
 
 ```
 
-# biobench/helpers.py
+# small_data_metrics/helpers.py
 
 ```python
 """
@@ -1003,7 +1017,7 @@ def as_completed(
 
 ```
 
-# biobench/reporting.py
+# small_data_metrics/reporting.py
 
 ```python
 """ """
@@ -1285,7 +1299,7 @@ ALL_RGB01 = [
 
 ```
 
-# biobench/newt/download.py
+# small_data_metrics/newt/download.py
 
 ```python
 # /// script
@@ -1393,7 +1407,7 @@ if __name__ == "__main__":
 
 ```
 
-# biobench/newt/__init__.py
+# small_data_metrics/newt/__init__.py
 
 ```python
 """
@@ -2730,7 +2744,7 @@ import beartype
 import submitit
 import tyro
 
-from biobench import config, newt, reporting
+from small_data_metrics import config, newt, reporting
 
 log_format = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
 logging.basicConfig(level=logging.INFO, format=log_format)
@@ -2821,73 +2835,23 @@ if __name__ == "__main__":
 
 ```
 
-# Biology Benchmark (`biobench`)
+# Small Data Metrics
 
-This library is an easy-to-read benchmark for biology-related computer vision tasks.
+Models
 
-It aims to make it easy to:
+* Gemini Flash 2.0
+* Gemini Flash 1.5 8B
+* GPT-4o
+* GPT-4o-mini
+* Claude Sonnet 3.7
+* Claude Haiku 3.7
+* Qwen2-VL 7B
+* Qwen2-VL 72B
+* Llama 3.2 90B Vision
+* Pixtral 12B (Mistral)
 
-1. Evaluate new models.
-2. Add new tasks.
-3. Understand meaningful (or not) differences in model performance.
-
-Check out the [docs](https://samuelstevens.me/biobench/) for an interactive leaderboard.
-
-## Getting Started
-
-I use [uv](https://docs.astral.sh/uv/) for Python which makes it easy to manage Python versions, dependencies, virtual environments, etc.
-
-To install uv, run `curl -LsSf https://astral.sh/uv/install.sh | sh`.
-
-Then download at least one of the dataset.
-NeWT is really easy to download.
-
-```sh
-uv run biobench/newt/download.py --dir ./newt
-```
-
-Download it wherever you want on your own filesystem.
-
-Then run just the NeWT benchmark on all the default models.
-
-```sh
-CUDA_VISIBLE_DEVICES=0 uv run benchmark.py \
-  --newt-run --newt-args.datadir ./newt
-```
-
-## Why?
-
-**For computational biologists:** biobench gives you an overview of how different models perform on different tasks. If you have a concrete task that you need to solve, you can easily write a script that matches other, existing tasks and then evaluate many different models on your task. If you have an idea of a task, you can find the most similar existing task(s) on the leaderboard and compare model performance.
-
-**For computer vision researchers:** biobench is a realistic set of benchmarks that more accurately reflect how your model will be used by downstream users. If you aim to train a new foundation vision model, be aware that downstream users will likely not fine-tune it, and will instead use the image embeddings to do all sorts of weird things. Your foundation model should output representations that are universally useful; biobench lets you measure to what degree this is true.
-
-## Concrete Goals
-
-*Easy*, *fast*, *reproducible*, *understandable* evaluation of PyTorch computer vision models across a suite of realistic biology-related vision tasks.
-
-- *Easy*: one launch script, with all options documented in the code and in auto-generated web documentation.
-- *Fast*: Each evaluation takes at most 1 hour of A100 or A6000 time. There might be $n$ evaluations, so $n$ hours of A100, but it is embarrassingly parallel and the launch script supports easy parallel running and reporting.
-- *Reproducible*: the results include instructions to regenerate these results from scratch, assuming access to the `biobench` Git repo and that web dependencies have not changed.[^web-deps]
-- *Understandable*: results are in a machine-readable format, but include a simple human-readable notebook for reading. Common analyses (mean score across all tasks) are included in the notebook and take under one second to run.
-
-[^web-deps]: Web dependencies include things like datasets being available from their original source, Huggingface datasets can be re-downloaded, model checkpoints do not change, etc.
-
-
-We at [Imageomics](https://imageomics.osu.edu) use this library for testing [BioCLIP](https://imageomics.github.io/bioclip) and other internal models  during development.
-Because of this, there are two main classes of tasks:
-
-1. Downstream applications. These are tasks like [KABR](https://samuelstevens.me/biobench/biobench/kabr/index.html) or [Beluga whale re-ID](https://samuelstevens.me/biobench/biobench/beluga/index.html). These tasks represent real problems that computer vision systems fail to solve today.
-2. Benchmarks. These are made-up tasks like [Birds525](https://samuelstevens.me/biobench/biobench/birds525/index.html) or [RareSpecies](https://samuelstevens.me/biobench/biobench/rarespecies/index.html) that are artificial tasks, created to help us understand how useful a model might be in the real world for similar tasks.
-
-
-## Road Map
-
-1. Add contributing guide.
-2. Add example images for each task to the docs.
-3. Add 5-shot RareSpecies with simpleshot (like in BioCLIP paper). This is blocked because the Huggingface dataset doesn't work ([see this issue](https://huggingface.co/datasets/imageomics/rare-species/discussions/8)).
-4. Add FishVista for localized trait prediction. This is another non-classification task, and we are specifically interested in traits. But it will take more work because we have to match bounding boxes and patch-level features which is challenging after resizes.
-
-## Additional Tasks
-
-[Counting insects on sticky insect traps](https://github.com/md-121/yellow-sticky-traps-dataset)
-[Predicting plant stem angle](https://plantvision.unl.edu/datasets/download-panicoid-phenomap-1-dataset/)
+* DINOv2
+* CLIP
+* SigLIP
+* SigLIP 2
+* ResNet50 on ImageNet (ResNet Strikes Back)

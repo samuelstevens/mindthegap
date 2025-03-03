@@ -1,12 +1,9 @@
 docs: lint
-    uv run pdoc3 --force --html --output-dir docs --config latex_math=True biobench benchmark
-    uv run python scripts/docs.py --in-paths biobench benchmark.py --out-fpath docs/llms.txt
-
-types: lint
-    uv run pyright biobench
+    uv run pdoc3 --force --html --output-dir docs --config latex_math=True small_data_metrics benchmark
+    uv run python scripts/docs.py --in-paths small_data_metrics benchmark.py --out-fpath docs/llms.txt
 
 lint: fmt
-    ruff check --fix biobench benchmark.py
+    ruff check --fix small_data_metrics benchmark.py
 
 fmt:
     ruff format --preview .

@@ -1,7 +1,7 @@
 [project]
-name = "biobench"
+name = "small-data-metrics"
 version = "0.1.0"
-description = "Benchmark for biology-related computer vision tasks."
+description = "Benchmark for evaluating in the small data regime."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -25,11 +25,3 @@ dependencies = [
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 ignore = ["F722", "E402", "E501"]
-
-[tool.isort]
-profile = "black"
-
-[dependency-groups]
-dev = [
-    "pyinstrument>=5.0.1",
-]

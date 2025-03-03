@@ -5,7 +5,7 @@ import beartype
 from jaxtyping import Float, jaxtyped
 from torch import Tensor
 
-from biobench import cvml
+from . import cvml
 
 logger = logging.getLogger("third_party")
 
@@ -13,7 +13,7 @@ logger = logging.getLogger("third_party")
 @beartype.beartype
 def get_cache_dir() -> str:
     cache_dir = ""
-    for var in ("BIOBENCH_CACHE", "HF_HOME", "HF_HUB_CACHE"):
+    for var in ("SMALL_DATA_METRICS_CACHE", "HF_HOME", "HF_HUB_CACHE"):
         cache_dir = cache_dir or os.environ.get(var, "")
     return cache_dir or "."
 
