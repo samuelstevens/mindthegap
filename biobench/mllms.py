@@ -307,6 +307,16 @@ register_mllm(
 )
 register_mllm(
     "openrouter",
+    Mllm(
+        "meta-llama/llama-3.2-11b-vision-instruct",
+        16_384,
+        0.055,
+        0.055,
+        ["fp32", "bf16"],
+    ),
+)
+register_mllm(
+    "openrouter",
     Mllm("qwen/qwen-2-vl-7b-instruct", 4096, 0.1, 0.1, ["fp32", "bf16"]),
 )
 
@@ -319,4 +329,8 @@ register_mllm(
 register_mllm(
     "openrouter",
     Mllm("google/gemini-2.0-flash-lite-001", 1_000_000, 0.075, 0.3),
+)
+register_mllm(
+    "openrouter",
+    Mllm("openai/gpt-4o-mini-2024-07-18", 128_000, 0.15, 0.6),
 )
