@@ -37,11 +37,11 @@ import sklearn.pipeline
 import sklearn.preprocessing
 import sklearn.svm
 import torch
-from jaxtyping import Float, Int, Integer, jaxtyped
+from jaxtyping import Float, Int, Integer, Shaped, jaxtyped
 from PIL import Image
 from torch import Tensor
 
-from .. import config, cvml, helpers, mllms, reporting
+from . import config, cvml, helpers, mllms, reporting
 
 logger = logging.getLogger("newt")
 
@@ -53,13 +53,13 @@ logger = logging.getLogger("newt")
 
 @beartype.beartype
 def benchmark_cvml(cfg: config.Experiment) -> list[reporting.Report]:
-    rng = random.Random(cfg.seed)
+    rng_np = np.random.default_rng(seed=cfg.seed)
 
     backbone = cvml.load_vision_backbone(cfg.model)
 
     reports = []
     for train_dataset, test_dataset in helpers.progress(
-        get_all_tasks_cvml(cfg, backbone, rng), every=1, desc="tasks"
+        get_all_tasks_cvml(cfg, backbone, rng_np), every=1, desc="tasks"
     ):
         x_train = train_dataset.x.numpy()
         y_train = train_dataset.y.numpy()
@@ -67,7 +67,7 @@ def benchmark_cvml(cfg: config.Experiment) -> list[reporting.Report]:
         y_test = test_dataset.y.numpy()
 
         n_train = len(x_train)
-        assert n_train >= 10
+        assert n_train >= 2
 
         x_mean = x_train.mean(axis=0, keepdims=True)
 
@@ -119,7 +119,11 @@ class ImageDataset(torch.utils.data.Dataset):
     """
 
     def __init__(
-        self, root: str, img_ids: list[str], labels: list[int], transform=None
+        self,
+        root: str,
+        img_ids: Shaped[np.ndarray, " n"],
+        labels: Int[np.ndarray, " n"],
+        transform=None,
     ):
         self.transform = transform
         self.root = root
@@ -163,7 +167,7 @@ class FeatureDataset:
 @jaxtyped(typechecker=beartype.beartype)
 @torch.no_grad()
 def get_all_tasks_cvml(
-    cfg: config.Experiment, backbone: cvml.VisionBackbone, rng: random.Random
+    cfg: config.Experiment, backbone: cvml.VisionBackbone, rng: np.random.Generator
 ) -> collections.abc.Iterator[tuple[FeatureDataset, FeatureDataset]]:
     """ """
     labels_csv_name = "newt2021_labels.csv"
@@ -191,10 +195,14 @@ def get_all_tasks_cvml(
 
         # Split indices based on train/test split in the dataset using native Polars methods.
         train_rows = (
-            task_df.filter(pl.col("split") == "train").select("id", "label").rows()
+            task_df.filter(pl.col("split") == "train")
+            .select("id", "label")
+            .to_numpy(structured=True)
         )
         test_rows = (
-            task_df.filter(pl.col("split") != "train").select("id", "label").rows()
+            task_df.filter(pl.col("split") != "train")
+            .select("id", "label")
+            .to_numpy(structured=True)
         )
 
         # Apply n_train and n_test limits if specified
@@ -202,21 +210,18 @@ def get_all_tasks_cvml(
             train_rows = []
             train_ids, train_labels = (), ()
         elif cfg.n_train > 0 and len(train_rows) > cfg.n_train:
-            train_rows = rng.sample(train_rows, cfg.n_train)
-            train_ids, train_labels = zip(*train_rows)
+            train_ids, train_labels = sample(
+                rng, train_rows["id"], train_rows["label"], cfg.n_train
+            )
         else:
-            train_ids, train_labels = zip(*train_rows)
+            train_ids, train_labels = train_rows["id"], train_rows["label"]
 
-        if cfg.n_test > 0 and len(test_rows) > cfg.n_test:
-            test_rows = rng.sample(test_rows, cfg.n_test)
-            test_ids, test_labels = zip(*test_rows)
-        else:
-            test_ids, test_labels = zip(*test_rows)
+        test_ids, test_labels = test_rows["id"], test_rows["label"]
 
         dataset = ImageDataset(
             images_dir_path,
-            train_ids + test_ids,
-            train_labels + test_labels,
+            np.concatenate([train_ids, test_ids]),
+            np.concatenate([train_labels, test_labels]),
             img_transform,
         )
         dataloader = torch.utils.data.DataLoader(
@@ -271,19 +276,13 @@ def l2_normalize(
     return features / norms
 
 
-class DummyBinaryClassifier:
-    def __init__(self):
-        self.rng = random.Random()
-
-    def fit(*args, **kwargs):
-        logger.info("Doing nothing because it's a dummy classifier.")
-
-    def predict(self, data):
-        return np.array([int(self.rng.random() > 0.5) for _ in data])
-
-
 def init_svc(n_train: int):
     """Create a new, randomly initialized SVM with a random hyperparameter search over kernel, C and gamma. It uses only 16 jobs in parallel to prevent overloading the CPUs on a shared machine."""
+
+    if n_train < 10:
+        return sklearn.pipeline.make_pipeline(
+            sklearn.svm.SVC(kernel="linear"),
+        )
 
     return sklearn.model_selection.RandomizedSearchCV(
         sklearn.pipeline.make_pipeline(
@@ -1318,3 +1317,34 @@ def include_task(
     # If no inclusion filters were specified, include by default
     # Otherwise, exclude because it didn't match any inclusion filter
     return not has_inclusion_filter
+
+
+@jaxtyped(typechecker=beartype.beartype)
+def sample(
+    rng: np.random.Generator,
+    img_ids: Shaped[np.ndarray, " m"],
+    labels: Int[np.ndarray, " m"],
+    n: int,
+) -> tuple[Shaped[np.ndarray, " n"], Int[np.ndarray, " n"]]:
+    assert max(labels) == 1
+    assert min(labels) == 0
+
+    n0 = n // 2
+    n1 = n - n0
+
+    # Get indices for each class
+    i0 = np.where(labels == 0)[0]
+    i1 = np.where(labels == 1)[0]
+
+    # Randomly select the required number of samples from each class
+    i0 = rng.choice(i0, size=n0, replace=False)
+    i1 = rng.choice(i1, size=n1, replace=False)
+
+    # Combine the indices
+    i = np.concatenate([i0, i1])
+
+    # Shuffle the combined indices to avoid having all class 0 samples followed by all class 1 samples
+    np.random.shuffle(i)
+
+    # Return the balanced subset
+    return img_ids[i], labels[i]

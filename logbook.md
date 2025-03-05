@@ -447,3 +447,10 @@ Questions that I want to understand:
 * Are there obvious trends between model size, model architecture, pretraining type with respect to tasks, sample efficiency and optimal SVM parameters?
 
 These are good questions for Rayeed to dig into, but I shouldn't put him on the critical path for this paper.
+
+# 03/05/2025
+
+I need to do the following:
+
+* [done] Make sure that class labels are balanced for 3 and 10.
+* Figure out how to plot tasks with varying number of samples.
