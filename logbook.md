@@ -453,4 +453,4 @@ These are good questions for Rayeed to dig into, but I shouldn't put him on the 
 I need to do the following:
 
 * [done] Make sure that class labels are balanced for 3 and 10.
-* Figure out how to plot tasks with varying number of samples.
+* [done] Figure out how to plot tasks with varying number of samples.
