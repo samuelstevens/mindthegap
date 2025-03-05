@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.11.8"
+__generated_with = "0.11.14"
 app = marimo.App(width="medium")
 
 
@@ -20,18 +20,18 @@ def _():
 
     if "." not in sys.path:
         sys.path.append(".")
-    import biobench.reporting
-    return biobench, math, mo, mpl, np, pl, plt, sqlite3, sys
+    import small_data_metrics.reporting
+    return math, mo, mpl, np, pl, plt, small_data_metrics, sqlite3, sys
 
 
 @app.cell
 def _(pl, sqlite3):
     cluster = "gestalt"
 
-    conn = sqlite3.connect("results/all-results.sqlite")
+    conn = sqlite3.connect("results/results.sqlite")
 
     preds_df = pl.read_database(
-        f"SELECT results.task_name, results.task_cluster, results.task_subcluster, results.model_ckpt, predictions.score, predictions.n_train FROM results JOIN predictions ON results.rowid = predictions.result_id WHERE results.task_cluster = '{cluster}'",
+    f"SELECT results.task_name, results.task_cluster, results.task_subcluster, results.model_ckpt, predictions.score, predictions.n_train FROM results JOIN predictions ON results.rowid = predictions.result_id WHERE results.task_cluster = '{cluster}'",
         conn,
     )
     return cluster, conn, preds_df
@@ -65,7 +65,20 @@ def _(np, pl, preds_df):
     df = (
         preds_df.group_by("task_name", "task_cluster", "n_train", "model_ckpt")
         .all()
-        .with_columns(pl.col("score").map_elements(boot_func).alias("boot"))
+        .with_columns(
+            pl.col("score")
+            .map_elements(
+                boot_func,
+                return_dtype=pl.Struct(
+                    [
+                        pl.Field("mean", pl.Float64),
+                        pl.Field("ci_lower", pl.Float64),
+                        pl.Field("ci_upper", pl.Float64),
+                    ]
+                ),
+            )
+            .alias("boot")
+        )
         .with_columns(
             mean=pl.col("boot").struct.field("mean"),
             ci_lower=pl.col("boot").struct.field("ci_lower"),
@@ -78,11 +91,11 @@ def _(np, pl, preds_df):
 
 
 @app.cell
-def _(biobench, cluster, df, pl, plt):
+def _(cluster, df, pl, plt, small_data_metrics):
     fig, ax = plt.subplots()
     for model, color in zip(
         sorted(df.get_column("model_ckpt").unique().to_list()),
-        biobench.reporting.ALL_RGB01[1::2],
+        small_data_metrics.reporting.ALL_RGB01 * 10,
     ):
         filtered_df = df.filter((pl.col("model_ckpt") == model)).sort("n_train")
 
@@ -98,7 +111,7 @@ def _(biobench, cluster, df, pl, plt):
         ax.set_ylim(0, 1.05)
         ax.set_title(cluster.capitalize())
         ax.set_xscale("symlog", linthresh=2)
-        ax.set_xlim(-0.15, 500)
+        ax.set_xlim(-0.15, 600)
 
         ax.legend(loc="best")
 

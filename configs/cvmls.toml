@@ -1,44 +1,59 @@
-n_train = [10, 30, 100, 300, 1_000]
+n_train = [10, 30, 100, 300, -1]
 n_test = [-1]
-
 
 newt_data = "/research/nfs_su_809/workspace/stevens.994/datasets/newt"
 
 ssl = false
 
-# [[models]]
-# method = "cvml"
-# org = "open-clip"
-# ckpt = "RN50/openai"
+# CLIP
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-B-16/openai"
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-L-14/openai"
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-L-14-336/openai"
 
-# [[models]]
-# method = "cvml"
-# org = "open-clip"
-# ckpt = "ViT-B-16/openai"
+# SigLIP
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-B-16-SigLIP-384/webli"
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-L-16-SigLIP-384/webli"
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-SO400M-14-SigLIP-384/webli"
 
-# [[models]]
-# method = "cvml"
-# org = "open-clip"
-# ckpt = "hf-hub:imageomics/bioclip"
-
-# [[models]]
-# method = "cvml"
-# org = "open-clip"
-# ckpt = "ViT-B-16-SigLIP/webli"
-
+# DINOv2
+[[models]]
+method = "cvml"
+org = "timm-vit"
+ckpt = "vit_small_patch14_reg4_dinov2.lvd142m"
 [[models]]
 method = "cvml"
 org = "timm-vit"
 ckpt = "vit_base_patch14_reg4_dinov2.lvd142m"
+[[models]]
+method = "cvml"
+org = "timm-vit"
+ckpt = "vit_large_patch14_reg4_dinov2.lvd142m"
+[[models]]
+method = "cvml"
+org = "timm-vit"
+ckpt = "vit_giant_patch14_reg4_dinov2.lvd142m"
 
-[newt]
+# BioCLIP
 
-tasks = [
-  "fgvcx_icassava_healthy_vs_sick",
-  "ml_photo_rating_12_vs_45_v1",
-  "ml_bio_has_red_eyes",
-  "ml_tag_feeding_young",
-  "ml_age_coopers_hawk",
-  "nabirds_species_classification_amekes_merlin",
-  "inat_non_species_dead_jackal",
-]
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "hf-hub:imageomics/bioclip"
