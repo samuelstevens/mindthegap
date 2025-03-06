@@ -53,6 +53,7 @@ logger = logging.getLogger("newt")
 
 @beartype.beartype
 def benchmark_cvml(cfg: config.Experiment) -> list[reporting.Report]:
+    # Document this function using google-like docstring. AI!
     rng_np = np.random.default_rng(seed=cfg.seed)
 
     backbone = cvml.load_vision_backbone(cfg.model)
@@ -317,12 +318,19 @@ def benchmark_mllm(cfg: config.Experiment) -> list[reporting.Report]:
         for train_dataset, test_dataset in get_all_tasks_mllm(cfg):
             # We load all the training samples into memory right away because they will be re-used over and over again.
             # Test samples are loaded one by one on demand.
-            train_indices = list(range(len(train_dataset)))
-            i_train = rng.sample(train_indices, k=min(cfg.n_train, len(train_indices)))
+            i_train = list(range(len(train_dataset)))
+            if cfg.n_train >= 0:
+                i_train = rng.sample(i_train, k=min(cfg.n_train, len(i_train)))
+            else:
+                i_train = i_train
 
             train_examples = [train_dataset[i].to_example(rng) for i in i_train]
-            if train_examples:
-                logger.info("Loaded %d training examples.", len(train_examples))
+            logger.info(
+                "Loaded %d/%d training examples (%s).",
+                len(train_examples),
+                len(train_dataset),
+                train_dataset.task,
+            )
 
             @beartype.beartype
             async def run_one(i: int) -> reporting.Prediction:
@@ -366,25 +374,30 @@ def benchmark_mllm(cfg: config.Experiment) -> list[reporting.Report]:
             async def run_all() -> list[reporting.Prediction]:
                 if cfg.debug:
                     logger.info(
-                        "Using the first 10 examples out of %d.", len(test_dataset)
+                        "Using the first 10/%d examples for testing (%s).",
+                        len(test_dataset),
+                        test_dataset.task,
                     )
                     test_i = list(range(10))
                 elif cfg.n_test >= 0 and cfg.n_test < len(test_dataset):
                     logger.info(
-                        "Using %d random examples out of %d.",
+                        "Using %d/%d random examples for testing (%s).",
                         cfg.n_test,
                         len(test_dataset),
+                        test_dataset.task,
                     )
                     test_i = rng.sample(range(len(test_dataset)), k=cfg.n_test)
                 else:
                     logger.info(
-                        "Using entire test set (%d examples).", len(test_dataset)
+                        "Using all (%d) examples for testing (%s).",
+                        len(test_dataset),
+                        test_dataset.task,
                     )
                     test_i = list(range(len(test_dataset)))
 
                 jobs = [asyncio.create_task(run_one(i)) for i in test_i]
                 preds = []
-                for job in helpers.progress(jobs, desc=train_dataset.task):
+                for job in jobs:
                     pred: reporting.Prediction = await job
                     preds.append(pred)
                 return preds
