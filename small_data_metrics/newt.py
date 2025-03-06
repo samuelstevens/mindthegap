@@ -356,7 +356,6 @@ def l2_normalize(
 
 def init_svc(n_train: int):
     """Create a new, randomly initialized SVM with a random hyperparameter search over kernel, C and gamma. It uses only 16 jobs in parallel to prevent overloading the CPUs on a shared machine."""
-
     if n_train < 10:
         return sklearn.pipeline.make_pipeline(
             sklearn.svm.SVC(kernel="linear"),
