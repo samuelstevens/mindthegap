@@ -12,7 +12,16 @@ logger = logging.getLogger("third_party")
 
 @beartype.beartype
 def get_cache_dir() -> str:
-    # Document this function. AI!
+    """Get the cache directory for downloading models.
+    
+    Checks environment variables in the following order:
+    1. SMALL_DATA_METRICS_CACHE - Custom cache for this project
+    2. HF_HOME - Hugging Face's home directory
+    3. HF_HUB_CACHE - Hugging Face's hub cache
+    
+    Returns:
+        The path to the cache directory, or "." (current directory) if none found.
+    """
     cache_dir = ""
     for var in ("SMALL_DATA_METRICS_CACHE", "HF_HOME", "HF_HUB_CACHE"):
         cache_dir = cache_dir or os.environ.get(var, "")
