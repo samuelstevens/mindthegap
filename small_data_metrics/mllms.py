@@ -25,6 +25,7 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 @beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class Example:
+    # Document this class. AI!
     img_b64: str
     user: str
     assistant: str
@@ -289,9 +290,7 @@ def register_mllm(model_org: str, mllm: Mllm):
 
 @beartype.beartype
 def list_mllms() -> list[tuple[str, str]]:
-    """
-    List all registered multimodal LLM models.
-    """
+    """List all registered multimodal LLM models."""
     return list(_global_mllm_registry.keys())
 
 
@@ -318,6 +317,10 @@ register_mllm(
 register_mllm(
     "openrouter",
     Mllm("qwen/qwen-2-vl-7b-instruct", 4096, 0.1, 0.1, ["fp32", "bf16"]),
+)
+register_mllm(
+    "openrouter",
+    Mllm("qwen/qwen2.5-vl-72b-instruct", 32_000, 0.7, 0.7, ["fp32", "bf16"]),
 )
 
 # Proprietary
