@@ -122,12 +122,13 @@ def benchmark_cvml(cfg: config.Experiment) -> list[reporting.Report]:
 class ImageSample(typing.TypedDict):
     """
     A dictionary representing a single image sample with its metadata.
-    
+
     Attributes:
         img_id: Unique identifier for the image.
         img: The image tensor with shape [3, width, height] (RGB channels first).
         label: Binary class label (0 or 1) for the image.
     """
+
     img_id: str
     img: Float[Tensor, "3 width height"]
     label: Int[Tensor, ""]
