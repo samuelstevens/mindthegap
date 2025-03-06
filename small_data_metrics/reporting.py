@@ -40,13 +40,12 @@ class Prediction:
 
 
 def get_git_hash() -> str:
-    """
-    Returns the hash of the current git commit, assuming we are in a git repo.
-    """
+    """Returns the hash of the current git commit, assuming we are in a git repo."""
     return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
 
 
 def get_gpu_name() -> str:
+    # Document this function. AI!
     if torch.cuda.is_available():
         return torch.cuda.get_device_properties(0).name
     else:
@@ -55,8 +54,7 @@ def get_gpu_name() -> str:
 
 @dataclasses.dataclass
 class Report:
-    """
-    The result of running a benchmark task.
+    """The result of running a benchmark task.
 
     This class is designed to store results and metadata, with experiment configuration
     stored in the exp_cfg field to avoid duplication.
@@ -110,11 +108,7 @@ class Report:
         return conn
 
     def to_dict(self) -> dict[str, object]:
-        """
-        Convert the report to a JSON-compatible dictionary.
-        Uses dataclasses.asdict() with custom handling for special types.
-        """
-
+        """Convert the report to a JSON-compatible dictionary. Uses dataclasses.asdict() with custom handling for special types."""
         dct = dataclasses.asdict(self)
 
         # Handle special cases
@@ -124,8 +118,7 @@ class Report:
         return dct
 
     def write(self, conn: sqlite3.Connection | None = None):
-        """
-        Write this report to a SQLite database.
+        """Write this report to a SQLite database.
 
         Args:
             conn: SQLite connection to write to
