@@ -1,5 +1,4 @@
-"""
-# NeWT: Natural World Tasks
+"""NeWT: Natural World Tasks.
 
 NeWT is a collection of 164 binary classification tasks related to visual understanding of the natural world ([CVPR 2021 paper](https://arxiv.org/abs/2103.16483), [code](https://github.com/visipedia/newt/tree/main)).
 
@@ -120,9 +119,8 @@ def benchmark_cvml(cfg: config.Experiment) -> list[reporting.Report]:
 
 @jaxtyped(typechecker=beartype.beartype)
 class ImageSample(typing.TypedDict):
-    """
-    A dictionary representing a single image sample with its metadata.
-
+    """A dictionary representing a single image sample with its metadata.
+    
     Attributes:
         img_id: Unique identifier for the image.
         img: The image tensor with shape [3, width, height] (RGB channels first).
@@ -136,9 +134,7 @@ class ImageSample(typing.TypedDict):
 
 @jaxtyped(typechecker=beartype.beartype)
 class ImageDataset(torch.utils.data.Dataset):
-    """
-    A dataset that returns ImageSample dictionaries.
-    """
+    """A dataset that returns ImageSample dictionaries."""
 
     def __init__(
         self,
@@ -147,12 +143,28 @@ class ImageDataset(torch.utils.data.Dataset):
         labels: Int[np.ndarray, " n"],
         transform=None,
     ):
+        """Initialize the dataset with image paths and labels.
+        
+        Args:
+            root: Root directory containing the images.
+            img_ids: Array of image IDs.
+            labels: Array of binary labels corresponding to the images.
+            transform: Optional transform to apply to the images.
+        """
         self.transform = transform
         self.root = root
         self.img_ids = img_ids
         self.labels = labels
 
     def __getitem__(self, i: int) -> ImageSample:
+        """Get a sample by its index.
+        
+        Args:
+            i: Index of the sample to retrieve.
+            
+        Returns:
+            A dictionary containing the image ID, image tensor, and label.
+        """
         img_id = self.img_ids[i]
         img = Image.open(os.path.join(self.root, f"{img_id}.jpg"))
         if self.transform is not None:
@@ -161,11 +173,23 @@ class ImageDataset(torch.utils.data.Dataset):
         return {"img_id": img_id, "img": img, "label": label}
 
     def __len__(self) -> int:
+        """Return the number of samples in the dataset.
+        
+        Returns:
+            The number of samples.
+        """
         return len(self.img_ids)
 
 
 @beartype.beartype
 class FeatureSample(typing.TypedDict):
+    """A dictionary representing a feature sample with its metadata.
+    
+    Attributes:
+        img_id: Unique identifier for the image.
+        x: Feature vector extracted from the image.
+        y: Binary class label (0 or 1) for the image.
+    """
     img_id: str
     x: Float[Tensor, " d"]
     y: Int[Tensor, ""]
@@ -174,6 +198,16 @@ class FeatureSample(typing.TypedDict):
 @jaxtyped(typechecker=beartype.beartype)
 @dataclasses.dataclass(frozen=True)
 class FeatureDataset:
+    """A dataset of feature vectors extracted from images.
+    
+    Attributes:
+        img_ids: List of image IDs.
+        x: Tensor of feature vectors.
+        y: Tensor of binary labels.
+        task: Name of the classification task.
+        cluster: Cluster the task belongs to.
+        subcluster: Sub-cluster the task belongs to (may be None).
+    """
     img_ids: list[str]
     x: Float[Tensor, "n dim"]
     y: Int[Tensor, " n"]
@@ -183,6 +217,14 @@ class FeatureDataset:
     subcluster: str | None
 
     def __getitem__(self, i: int) -> FeatureSample:
+        """Get a feature sample by its index.
+        
+        Args:
+            i: Index of the sample to retrieve.
+            
+        Returns:
+            A dictionary containing the image ID, feature vector, and label.
+        """
         return {"img_id": self.img_ids[i], "x": self.x[i], "y": self.y[i]}
 
 
@@ -191,7 +233,19 @@ class FeatureDataset:
 def get_all_tasks_cvml(
     cfg: config.Experiment, backbone: cvml.VisionBackbone, rng: np.random.Generator
 ) -> collections.abc.Iterator[tuple[FeatureDataset, FeatureDataset]]:
-    """ """
+    """Get all NeWT tasks as pairs of train and test feature datasets.
+    
+    Args:
+        cfg: Experiment configuration.
+        backbone: Vision model to extract features.
+        rng: Random number generator for sampling.
+        
+    Returns:
+        Iterator of (train_dataset, test_dataset) pairs.
+        
+    Raises:
+        RuntimeError: If the NeWT dataset is not found at the specified path.
+    """
     labels_csv_name = "newt2021_labels.csv"
     labels_csv_path = os.path.join(cfg.newt_data, labels_csv_name)
     images_dir_name = "newt2021_images"
@@ -329,6 +383,18 @@ def init_svc(n_train: int):
 
 @beartype.beartype
 def benchmark_mllm(cfg: config.Experiment) -> list[reporting.Report]:
+    """Benchmark a multimodal language model on the NeWT dataset.
+    
+    This function evaluates an MLLM by prompting it with images and questions
+    about the content, then evaluating its responses against ground truth.
+    
+    Args:
+        cfg: Configuration for the experiment, including model, dataset paths,
+             and parameters for evaluation.
+             
+    Returns:
+        A list of Report objects containing evaluation results for each task.
+    """
     rng = random.Random(cfg.seed)
 
     reports = []
@@ -440,6 +506,14 @@ def benchmark_mllm(cfg: config.Experiment) -> list[reporting.Report]:
 @beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class SampleMllm:
+    """A sample for multimodal language model evaluation.
+    
+    Attributes:
+        img_id: Unique identifier for the image.
+        img_b64: Base64-encoded image data.
+        label: Binary class label (0 or 1).
+        classnames: Tuple of class names corresponding to labels 0 and 1.
+    """
     img_id: str
     img_b64: str
     label: int
@@ -449,9 +523,22 @@ class SampleMllm:
 
     @property
     def classname(self) -> str:
+        """Get the class name corresponding to this sample's label.
+        
+        Returns:
+            The class name as a string.
+        """
         return self.classnames[self.label]
 
     def make_user(self, rng: random.Random) -> str:
+        """Create a user prompt for the MLLM.
+        
+        Args:
+            rng: Random number generator for randomizing prompt order.
+            
+        Returns:
+            A string prompt asking the model to classify the image.
+        """
         a, b = self.classnames
         if rng.random() > 0.5:
             a, b = b, a
@@ -459,12 +546,15 @@ class SampleMllm:
 
     @property
     def assistant(self) -> str:
+        """Get the expected assistant response for this sample.
+        
+        Returns:
+            A string containing the expected response with the correct class name.
+        """
         return f"**{self.classname}**"
 
     def parse_assistant(self, assistant: str) -> tuple[int, bool]:
-        """
-        Returns a label, parsed to an integer. Also returns a boolean indicating whether parsing was successful.
-        """
+        """Returns a label, parsed to an integer. Also returns a boolean indicating whether parsing was successful."""
         pattern = re.compile(r"\*\*(.*)\*\*")
         match = pattern.match(assistant)
         if match:
@@ -488,6 +578,14 @@ class SampleMllm:
         return (0, False)
 
     def to_example(self, rng: random.Random) -> mllms.Example:
+        """Convert this sample to an MLLM example.
+        
+        Args:
+            rng: Random number generator for randomizing prompt order.
+            
+        Returns:
+            An Example object containing the image, user prompt, and expected response.
+        """
         return mllms.Example(
             img_b64=self.img_b64,
             user=self.make_user(rng),
@@ -497,8 +595,8 @@ class SampleMllm:
 
 @jaxtyped(typechecker=beartype.beartype)
 class DatasetMllm(torch.utils.data.Dataset):
-    """
-    A dataset that returns SampleMllms for a specific task.
+    """A dataset that returns SampleMllms for a specific task.
+    
     This dataset can be instantiated as either a training or test dataset.
 
     This dataset presents a clean 0-n indexing interface while internally
@@ -515,6 +613,17 @@ class DatasetMllm(torch.utils.data.Dataset):
         df: pl.DataFrame,
         is_train: bool,
     ):
+        """Initialize the dataset with task information and indices.
+        
+        Args:
+            task: Name of the classification task.
+            cluster: Cluster the task belongs to.
+            subcluster: Sub-cluster the task belongs to (may be None).
+            indices: Array of indices into the full dataset.
+            root: Root directory containing the images.
+            df: DataFrame containing metadata for all samples.
+            is_train: Whether this is a training dataset.
+        """
         self.task = task
         self.cluster = cluster
         self.subcluster = subcluster
@@ -532,13 +641,27 @@ class DatasetMllm(torch.utils.data.Dataset):
         self.task_df = self.df.filter(pl.col("task") == self.task)
 
     def __repr__(self) -> str:
+        """Get a string representation of the dataset.
+        
+        Returns:
+            A string describing the dataset.
+        """
         split = "train" if self.is_train else "test"
         return f"DatasetMllm(task={self.task}, cluster={self.cluster}, split={split}, n_samples={len(self.indices)})"
 
     def __getitem__(self, i: int) -> SampleMllm:
-        """
-        Get a sample by its index in this dataset (0 to len-1).
+        """Get a sample by its index in this dataset (0 to len-1).
+        
         Internally maps to the correct index in the full dataset.
+        
+        Args:
+            i: Index of the sample to retrieve.
+            
+        Returns:
+            A SampleMllm object.
+            
+        Raises:
+            IndexError: If the index is out of bounds.
         """
         if i >= len(self.indices):
             raise IndexError(
@@ -563,7 +686,7 @@ class DatasetMllm(torch.utils.data.Dataset):
         )
 
     def __len__(self) -> int:
-        """Return the number of samples in this dataset"""
+        """Return the number of samples in this dataset."""
         return len(self.indices)
 
 
@@ -571,9 +694,18 @@ class DatasetMllm(torch.utils.data.Dataset):
 def get_all_tasks_mllm(
     cfg: config.Experiment,
 ) -> collections.abc.Iterator[tuple[DatasetMllm, DatasetMllm]]:
-    """
-    Get all tasks as pairs of (train_dataset, test_dataset).
+    """Get all tasks as pairs of (train_dataset, test_dataset).
+    
     Each dataset is a DatasetMllm instance.
+    
+    Args:
+        cfg: Experiment configuration.
+        
+    Returns:
+        Iterator of (train_dataset, test_dataset) pairs.
+        
+    Raises:
+        RuntimeError: If the NeWT dataset is not found at the specified path.
     """
     labels_csv_name = "newt2021_labels.csv"
     labels_csv_path = os.path.join(cfg.newt_data, labels_csv_name)
@@ -1305,8 +1437,7 @@ text_label_to_classname = {
 def include_task(
     cfg: config.Newt, task: str, cluster: str, subcluster: str | None
 ) -> bool:
-    """
-    Determine if a task should be included based on the configuration.
+    """Determine if a task should be included based on the configuration.
 
     Args:
         cfg: The newt configuration
@@ -1360,6 +1491,20 @@ def sample(
     labels: Int[np.ndarray, " m"],
     n: int,
 ) -> tuple[Shaped[np.ndarray, " n"], Int[np.ndarray, " n"]]:
+    """Sample a balanced subset of data points.
+    
+    Args:
+        rng: Random number generator.
+        img_ids: Array of image IDs.
+        labels: Array of binary labels.
+        n: Number of samples to return.
+        
+    Returns:
+        A tuple of (sampled_img_ids, sampled_labels).
+        
+    Raises:
+        AssertionError: If labels are not binary (0 or 1).
+    """
     assert max(labels) == 1
     assert min(labels) == 0
 
