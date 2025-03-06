@@ -13,16 +13,17 @@ import typing
 @dataclasses.dataclass(frozen=True)
 class Model:
     """Configuration for a model to be evaluated.
-    
+
     This class defines the essential parameters needed to identify and load
     a specific model for evaluation in the benchmark.
-    
+
     Attributes:
-        method: The type of model - either "cvml" (computer vision model) or 
+        method: The type of model - either "cvml" (computer vision model) or
                 "mllm" (multimodal language model).
         org: Organization or source of the model (e.g., "openai", "google", "openrouter").
         ckpt: Checkpoint or specific model identifier (e.g., "gpt-4o", "gemini-2.0-flash").
     """
+
     method: typing.Literal["cvml", "mllm"]
     org: str
     ckpt: str
@@ -55,11 +56,12 @@ class Newt:
 @dataclasses.dataclass(frozen=True)
 class Experiment:
     """Configuration for a benchmark experiment.
-    
+
     This class defines all parameters needed to run a benchmark experiment,
     including model selection, dataset configuration, evaluation settings,
     and output preferences.
     """
+
     model: Model
 
     n_train: int = -1
@@ -107,9 +109,16 @@ class Experiment:
     newt_data: str = ""
     newt: Newt = dataclasses.field(default_factory=Newt)
 
+    def get_newt_df(self) -> object:
+        # Document this. Change object to whatever the correct datatype is. AI!
+        import polars as pl
+
+        labels_csv_path = os.path.join(self.newt_data, "newt2021_labels.csv")
+        return pl.read_csv(labels_csv_path)
+
     def to_dict(self) -> dict[str, object]:
         """Convert the experiment configuration to a dictionary.
-        
+
         Returns:
             A dictionary representation of all configuration parameters.
         """
