@@ -1,3 +1,9 @@
+"""Multimodal LLM interface for interacting with vision-language models.
+
+This module provides utilities for prompting, rate limiting, and managing
+multimodal language models (MLLMs) that can process both images and text.
+"""
+
 import asyncio
 import collections
 import dataclasses
@@ -43,6 +49,15 @@ class Example:
 
 @dataclasses.dataclass(frozen=True)
 class Mllm:
+    """Configuration for a multimodal language model.
+    
+    Attributes:
+        name: Model identifier/checkpoint name.
+        max_tokens: Maximum context length supported by the model.
+        usd_per_m_input: Cost in USD per million input tokens.
+        usd_per_m_output: Cost in USD per million output tokens.
+        quantizations: List of supported quantization formats.
+    """
     name: str
     max_tokens: int
     usd_per_m_input: float
@@ -59,6 +74,17 @@ class Mllm:
 def fits(
     cfg: config.Experiment, examples: list[Example], img_b64: str, user: str
 ) -> bool:
+    """Check if a prompt will fit within the model's context window.
+    
+    Args:
+        cfg: Experiment configuration.
+        examples: Few-shot examples to include in the prompt.
+        img_b64: Base64-encoded image data.
+        user: User prompt text.
+        
+    Returns:
+        True if the prompt fits within the model's context window, False otherwise.
+    """
     mllm = load_mllm(cfg.model)
     messages = make_prompt(cfg, examples, img_b64, user)
     n_tokens = litellm.token_counter(model=cfg.model.ckpt, messages=messages)
@@ -75,14 +101,15 @@ async def send(
     max_retries: int = 5,
     system: str = "",
 ) -> str:
-    """
-    Send a message to the LLM and get the response.
+    """Send a message to the LLM and get the response.
 
     Args:
-        cfg: TODO
-        examples: Few-shot examples.
-        image: The input image.
-        user: The user request.
+        cfg: Experiment configuration with model and parameters.
+        examples: Few-shot examples to include in the prompt.
+        img_b64: Base64-encoded image data with data URI prefix.
+        user: The user request or prompt text.
+        max_retries: Maximum number of retry attempts for failed API calls.
+        system: Optional system message to include in the prompt.
 
     Returns:
         The LLM's response as a string.
@@ -91,7 +118,6 @@ async def send(
         ValueError: If required settings are missing
         RuntimeError: If LLM call fails
     """
-
     messages = make_prompt(cfg, examples, img_b64, user)
     mllm = load_mllm(cfg.model)
 
@@ -167,6 +193,21 @@ def make_prompt(
     *,
     system: str = "",
 ) -> list[object]:
+    """Create a prompt for the LLM based on the experiment configuration.
+    
+    Args:
+        cfg: Experiment configuration with prompting style.
+        examples: Few-shot examples to include in the prompt.
+        img_b64: Base64-encoded image data.
+        user: User prompt text.
+        system: Optional system message to include.
+        
+    Returns:
+        List of message objects formatted for the LLM API.
+        
+    Raises:
+        AssertionError: If prompting style is not recognized.
+    """
     if cfg.prompting == "single":
         return _make_single_turn_prompt(examples, img_b64, user, system=system)
     elif cfg.prompting == "multi":
@@ -243,12 +284,27 @@ def _make_multi_turn_prompt(
 
 @beartype.beartype
 class RateLimiter:
+    """Rate limiter for API calls to prevent exceeding rate limits.
+    
+    Implements a sliding window rate limiting algorithm to control
+    the frequency of API calls.
+    """
     def __init__(self, max_rate: int, window_s: float = 1.0):
+        """Initialize the rate limiter.
+        
+        Args:
+            max_rate: Maximum number of requests allowed in the time window.
+            window_s: Time window in seconds.
+        """
         self.max_rate = max_rate
         self.window_s = window_s
         self.timestamps = collections.deque()
 
     async def acquire(self):
+        """Acquire permission to make an API call.
+        
+        Blocks until a request can be made without exceeding the rate limit.
+        """
         now = time.monotonic()
 
         # Remove timestamps older than our window
@@ -277,9 +333,7 @@ _global_mllm_registry: dict[tuple[str, str], Mllm] = {}
 
 @beartype.beartype
 def load_mllm(cfg: config.Model) -> Mllm:
-    """
-    Load a multimodal LLM configuration.
-    """
+    """Load a multimodal LLM configuration."""
     key = (cfg.org, cfg.ckpt)
     if key not in _global_mllm_registry:
         raise ValueError(f"Model '{key}' not found.")
@@ -289,9 +343,7 @@ def load_mllm(cfg: config.Model) -> Mllm:
 
 @beartype.beartype
 def register_mllm(model_org: str, mllm: Mllm):
-    """
-    Register a new multimodal LLM configuration.
-    """
+    """Register a new multimodal LLM configuration."""
     key = (model_org, mllm.name)
     if key in _global_mllm_registry:
         logger.warning("Overwriting key '%s' in registry.", key)
