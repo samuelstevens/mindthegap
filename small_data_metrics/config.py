@@ -6,7 +6,17 @@ import typing
 
 @dataclasses.dataclass(frozen=True)
 class Model:
-    # Document this class. AI!
+    """Configuration for a model to be evaluated.
+    
+    This class defines the essential parameters needed to identify and load
+    a specific model for evaluation in the benchmark.
+    
+    Attributes:
+        method: The type of model - either "cvml" (computer vision model) or 
+                "mllm" (multimodal language model).
+        org: Organization or source of the model (e.g., "openai", "google", "openrouter").
+        ckpt: Checkpoint or specific model identifier (e.g., "gpt-4o", "gemini-2.0-flash").
+    """
     method: typing.Literal["cvml", "mllm"]
     org: str
     ckpt: str
