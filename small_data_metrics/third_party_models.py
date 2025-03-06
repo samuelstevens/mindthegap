@@ -12,6 +12,7 @@ logger = logging.getLogger("third_party")
 
 @beartype.beartype
 def get_cache_dir() -> str:
+    # Document this function. AI!
     cache_dir = ""
     for var in ("SMALL_DATA_METRICS_CACHE", "HF_HOME", "HF_HUB_CACHE"):
         cache_dir = cache_dir or os.environ.get(var, "")
@@ -20,8 +21,7 @@ def get_cache_dir() -> str:
 
 @beartype.beartype
 def get_ssl() -> bool:
-    """
-    Checks whether BIOBENCH_DISABLE_SSL is present in the environment.
+    """Checks whether BIOBENCH_DISABLE_SSL is present in the environment.
 
     We use environment variables rather than a boolean argument because
 
@@ -40,8 +40,7 @@ def get_ssl() -> bool:
 
 @jaxtyped(typechecker=beartype.beartype)
 class OpenClip(cvml.VisionBackbone):
-    """
-    Loads checkpoints from [open_clip](https://github.com/mlfoundations/open_clip), an open-source reproduction of the original [CLIP](https://arxiv.org/abs/2103.00020) paper.
+    """Loads checkpoints from [open_clip](https://github.com/mlfoundations/open_clip), an open-source reproduction of the original [CLIP](https://arxiv.org/abs/2103.00020) paper.
 
     Checkpoints are in the format `<ARCH>/<CKPT>`.
     Look at the [results file](https://github.com/mlfoundations/open_clip/blob/main/docs/openclip_results.csv) for the pretrained models.
