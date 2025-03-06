@@ -63,8 +63,18 @@ _global_backbone_registry: dict[str, type[VisionBackbone]] = {}
 def load_vision_backbone(
     model_cfg: config.Model,
 ) -> VisionBackbone:
-    """Load a pretrained vision backbone."""
-    # Document this function's arg/return types. AI!
+    """Load a pretrained vision backbone.
+    
+    Args:
+        model_cfg: Configuration object containing the organization ('org') 
+                  and checkpoint ('ckpt') identifiers for the model.
+                  
+    Returns:
+        An initialized VisionBackbone instance ready for inference.
+        
+    Raises:
+        ValueError: If the specified organization is not registered.
+    """
     if model_cfg.org not in _global_backbone_registry:
         raise ValueError(f"Org '{model_cfg.org}' not found.")
 
