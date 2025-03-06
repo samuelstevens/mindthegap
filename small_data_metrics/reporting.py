@@ -45,7 +45,14 @@ def get_git_hash() -> str:
 
 
 def get_gpu_name() -> str:
-    # Document this function. AI!
+    """Get the name of the primary GPU device if available.
+    
+    This function checks if CUDA is available and returns the name of the first
+    GPU device. Used for experiment tracking and reporting.
+    
+    Returns:
+        The name of the GPU as a string, or an empty string if no GPU is available.
+    """
     if torch.cuda.is_available():
         return torch.cuda.get_device_properties(0).name
     else:
