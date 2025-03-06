@@ -8,6 +8,10 @@ import dataclasses
 import os.path
 import tomllib
 import typing
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import polars as pl
 
 
 @dataclasses.dataclass(frozen=True)
