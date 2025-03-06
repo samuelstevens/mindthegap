@@ -109,8 +109,18 @@ class Experiment:
     newt_data: str = ""
     newt: Newt = dataclasses.field(default_factory=Newt)
 
-    def get_newt_df(self) -> object:
-        # Document this. Change object to whatever the correct datatype is. AI!
+    def get_newt_df(self) -> "pl.DataFrame":
+        """Load the NeWT dataset labels into a Polars DataFrame.
+        
+        This method reads the NeWT labels CSV file from the configured data directory
+        and returns it as a structured DataFrame for further processing.
+        
+        Returns:
+            A Polars DataFrame containing the NeWT dataset labels and metadata.
+            
+        Raises:
+            FileNotFoundError: If the labels CSV file doesn't exist at the specified path.
+        """
         import polars as pl
 
         labels_csv_path = os.path.join(self.newt_data, "newt2021_labels.csv")
