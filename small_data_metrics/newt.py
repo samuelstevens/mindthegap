@@ -53,17 +53,16 @@ logger = logging.getLogger("newt")
 
 @beartype.beartype
 def benchmark_cvml(cfg: config.Experiment) -> list[reporting.Report]:
-    """
-    Benchmark a computer vision model on the NeWT dataset.
-    
+    """Benchmark a computer vision model on the NeWT dataset.
+
     This function evaluates a vision model by extracting features for each image,
     fitting a linear SVM to the training examples, and evaluating on test data.
     Results are aggregated across all selected tasks.
-    
+
     Args:
         cfg: Configuration for the experiment, including model, dataset paths,
              and parameters for training and evaluation.
-             
+
     Returns:
         A list of Report objects containing evaluation results for each task.
     """
@@ -121,6 +120,7 @@ def benchmark_cvml(cfg: config.Experiment) -> list[reporting.Report]:
 
 @jaxtyped(typechecker=beartype.beartype)
 class ImageSample(typing.TypedDict):
+    # Document this class. AI!
     img_id: str
     img: Float[Tensor, "3 width height"]
     label: Int[Tensor, ""]
