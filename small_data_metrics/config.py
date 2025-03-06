@@ -1,3 +1,9 @@
+"""Configuration management for small data metrics experiments.
+
+This module provides dataclasses and utilities for loading, managing, and
+validating experiment configurations from TOML files.
+"""
+
 import dataclasses
 import os.path
 import tomllib
@@ -48,6 +54,12 @@ class Newt:
 
 @dataclasses.dataclass(frozen=True)
 class Experiment:
+    """Configuration for a benchmark experiment.
+    
+    This class defines all parameters needed to run a benchmark experiment,
+    including model selection, dataset configuration, evaluation settings,
+    and output preferences.
+    """
     model: Model
 
     n_train: int = -1
@@ -96,6 +108,11 @@ class Experiment:
     newt: Newt = dataclasses.field(default_factory=Newt)
 
     def to_dict(self) -> dict[str, object]:
+        """Convert the experiment configuration to a dictionary.
+        
+        Returns:
+            A dictionary representation of all configuration parameters.
+        """
         return dataclasses.asdict(self)
 
 
