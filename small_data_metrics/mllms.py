@@ -25,7 +25,17 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 @beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class Example:
-    # Document this class. AI!
+    """A single example for few-shot learning with multimodal LLMs.
+    
+    This class represents a complete example interaction with an MLLM,
+    containing an image, a user prompt, and the expected assistant response.
+    Used for few-shot prompting to demonstrate the expected behavior.
+    
+    Attributes:
+        img_b64: Base64-encoded image data with data URI prefix.
+        user: The user's text prompt or question about the image.
+        assistant: The expected/reference response from the assistant.
+    """
     img_b64: str
     user: str
     assistant: str
