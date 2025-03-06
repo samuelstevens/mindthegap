@@ -1,4 +1,8 @@
-""" """
+"""Reporting utilities for benchmark results.
+
+This module provides classes and functions for recording, storing, and analyzing
+benchmark results, including database integration and visualization helpers.
+"""
 
 import dataclasses
 import json
@@ -101,10 +105,23 @@ class Report:
     """Machine hostname that ran this experiment."""
 
     def __repr__(self):
+        """Return a string representation of the Report.
+        
+        Returns:
+            A string with task name, model name, and prediction count.
+        """
         model_name = self.exp_cfg.model.ckpt
         return f"Report({self.task_name}, {model_name}, {len(self.predictions)} predictions)"
 
     def get_conn(self) -> sqlite3.Connection:
+        """Get a SQLite connection to the results database.
+        
+        Creates the output directory if it doesn't exist and initializes
+        the database with the schema if needed.
+        
+        Returns:
+            An initialized SQLite connection to the results database.
+        """
         os.makedirs(self.exp_cfg.report_to, exist_ok=True)
         conn = sqlite3.connect(
             os.path.join(self.exp_cfg.report_to, "results.sqlite"), autocommit=False
