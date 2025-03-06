@@ -1476,9 +1476,9 @@ def include_task(
             return True
 
     # Check subclusters
-    if cfg.include_subclusters and subcluster:
+    if cfg.include_subclusters:
         has_inclusion_filter = True
-        if subcluster in cfg.include_subclusters:
+        if subcluster and subcluster in cfg.include_subclusters:
             return True
 
     # If no inclusion filters were specified, include by default
