@@ -6,6 +6,7 @@ import typing
 
 @dataclasses.dataclass(frozen=True)
 class Model:
+    # Document this class. AI!
     method: typing.Literal["cvml", "mllm"]
     org: str
     ckpt: str
@@ -89,8 +90,7 @@ class Experiment:
 
 
 def load(path: str) -> list[Experiment]:
-    """
-    Load experiments from a TOML file.
+    """Load experiments from a TOML file.
 
     None of the fields in Experiment are lists, so anytime we find a list in the TOML, we add another dimension to our grid search over all possible experiments.
     """
