@@ -1,3 +1,5 @@
+"""Tests for the newt module in small_data_metrics package."""
+
 import pytest
 from small_data_metrics import config, newt
 
