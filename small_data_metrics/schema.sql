@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     -- Task information
-    task_name TEXT NOT NULL,  -- "newt", "iwildcam", etc.
+    task_name TEXT NOT NULL, -- inat_non_species_mating_toxomerus_marginatus, etc. There is a bug where many of these are just 'newt'.
     task_cluster TEXT,
     task_subcluster TEXT,
     n_train INTEGER NOT NULL,  -- Number of train samples *actually* used (1, 3, 10, 30, etc.)

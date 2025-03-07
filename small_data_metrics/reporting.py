@@ -24,6 +24,113 @@ from . import config
 schema_fpath = pathlib.Path(__file__).parent / "schema.sql"
 
 
+@beartype.beartype
+def get_conn(cfg: config.Experiment) -> sqlite3.Connection:
+    """Get a SQLite connection to the results database.
+
+    Creates the output directory if it doesn't exist and initializes the database with the schema if needed.
+
+    Returns:
+        An initialized SQLite connection to the results database.
+    """
+    os.makedirs(cfg.report_to, exist_ok=True)
+    conn = sqlite3.connect(
+        os.path.join(cfg.report_to, "results.sqlite"), autocommit=False
+    )
+    with open(schema_fpath) as fd:
+        schema = fd.read()
+    conn.executescript(schema)
+    return conn
+
+
+@beartype.beartype
+def already_ran(
+    conn: sqlite3.Connection,
+    cfg: config.Experiment,
+    task_name: str,
+    task_cluster: str,
+    task_subcluster: str | None,
+) -> bool:
+    """Check if a benchmarking task has already been run for a given configuration.
+
+    This function queries the SQLite database to determine if a report exists for a specific task under the provided experiment configuration. It handles two cases due to a historical bug where many tasks were incorrectly saved with `task_name = 'newt'` instead of their actual names.
+
+    **Bug Explanation**:
+    In earlier versions of the codebase, reports for NeWT tasks were sometimes saved with `task_name = 'newt'` (the benchmark name) instead of the specific task name (e.g., 'ml_age_coopers_hawk'). This occurred because the `Report` object's `task_name` field was not always set correctly in functions like `benchmark_cvml` or `benchmark_mllm`. As a result, the original `report_exists` check, which relied solely on `task_name`, would fail to recognize that these tasks had been run, leading to unnecessary re-runs. To address this, this function performs a fallback check: if no report with the correct `task_name` is found, it looks for a report with `task_name = 'newt'` that matches the task's `task_cluster` and `task_subcluster`. If such a report exists, it assumes the task was part of that cluster/subcluster run.
+
+    Args:
+        conn: SQLite connection object to the results database.
+        cfg: Experiment configuration object containing model details and parameters (e.g., method, org, ckpt, n_train, sampling, and MLLM-specific fields like prompting and cot_enabled).
+        task_name: The actual name of the task to check (e.g., 'ml_age_coopers_hawk').
+        task_cluster: The cluster the task belongs to (e.g., 'ml_age').
+        task_subcluster: The subcluster the task belongs to (e.g., 'age'), or None if not applicable.
+
+    Returns:
+        bool: True if a report exists for the task under the given configuration, False otherwise. Returns True if either:
+              - A report with the correct `task_name` matches the config.
+              - A report with `task_name = 'newt'` matches the config, `task_cluster`, and `task_subcluster`, indicating the task was likely run as part of that group.
+
+    Notes:
+        - The function assumes that if a 'newt' report exists for the task's cluster and subcluster, the task was included in that run. This is a heuristic to handle legacy data and should be validated if partial runs are possible.
+        - Future runs should ensure `task_name` is set correctly to avoid reliance on the fallback check.
+    """
+    cursor = conn.cursor()
+    # Step 1: Check for a report with the correct task_name
+    query_correct = """
+    SELECT COUNT(*) FROM results
+    WHERE task_name IS ?
+    AND model_org IS ?
+    AND model_ckpt IS ?
+    AND n_train IS ?
+    AND sampling IS ?
+    """
+    values_correct = [
+        task_name,
+        cfg.model.org,
+        cfg.model.ckpt,
+        cfg.n_train,
+        cfg.sampling,
+    ]
+
+    if cfg.model.method == "mllm":
+        query_correct += " AND prompting IS ? AND cot_enabled IS ?"
+        values_correct.extend([cfg.prompting, 1 if cfg.cot_enabled else 0])
+
+    cursor.execute(query_correct, values_correct)
+    (count_correct,) = cursor.fetchone()
+    if count_correct > 0:
+        return True
+
+    # Step 2: If not found, check for 'newt' with matching cluster and subcluster
+    query_newt = """
+    SELECT COUNT(*) FROM results
+    WHERE task_name IS 'newt'
+    AND task_cluster IS ?
+    AND task_subcluster IS ?
+    AND model_org IS ?
+    AND model_ckpt IS ?
+    AND n_train IS ?
+    AND sampling IS ?
+    """
+    values_newt = [
+        task_cluster,
+        task_subcluster,
+        cfg.model.org,
+        cfg.model.ckpt,
+        cfg.n_train,
+        cfg.sampling,
+    ]
+
+    if cfg.model.method == "mllm":
+        query_newt += " AND prompting IS ? AND cot_enabled IS ?"
+        values_newt.extend([cfg.prompting, 1 if cfg.cot_enabled else 0])
+
+    cursor.execute(query_newt, values_newt)
+    (count_newt,) = cursor.fetchone()
+
+    return count_newt > 0
+
+
 @jaxtyped(typechecker=beartype.beartype)
 @dataclasses.dataclass(frozen=True)
 class Prediction:
@@ -43,20 +150,12 @@ class Prediction:
         return dataclasses.asdict(self)
 
 
-def get_git_hash() -> str:
+def _get_git_hash() -> str:
     """Returns the hash of the current git commit, assuming we are in a git repo."""
     return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
 
 
-def get_gpu_name() -> str:
-    """Get the name of the primary GPU device if available.
-    
-    This function checks if CUDA is available and returns the name of the first
-    GPU device. Used for experiment tracking and reporting.
-    
-    Returns:
-        The name of the GPU as a string, or an empty string if no GPU is available.
-    """
+def _get_gpu_name() -> str:
     if torch.cuda.is_available():
         return torch.cuda.get_device_properties(0).name
     else:
@@ -95,41 +194,23 @@ class Report:
     # Stuff for trying to reproduce this result. These are filled in by default.
     argv: list[str] = dataclasses.field(default_factory=lambda: sys.argv)
     """Command used to get this report."""
-    commit: str = get_git_hash()
+    commit: str = _get_git_hash()
     """Git commit for this current report."""
     posix_time: float = dataclasses.field(default_factory=time.time)
     """Time when this report was constructed."""
-    gpu_name: str = dataclasses.field(default_factory=get_gpu_name)
+    gpu_name: str = dataclasses.field(default_factory=_get_gpu_name)
     """Name of the GPU that ran this experiment."""
     hostname: str = dataclasses.field(default_factory=socket.gethostname)
     """Machine hostname that ran this experiment."""
 
     def __repr__(self):
         """Return a string representation of the Report.
-        
+
         Returns:
             A string with task name, model name, and prediction count.
         """
         model_name = self.exp_cfg.model.ckpt
         return f"Report({self.task_name}, {model_name}, {len(self.predictions)} predictions)"
-
-    def get_conn(self) -> sqlite3.Connection:
-        """Get a SQLite connection to the results database.
-        
-        Creates the output directory if it doesn't exist and initializes
-        the database with the schema if needed.
-        
-        Returns:
-            An initialized SQLite connection to the results database.
-        """
-        os.makedirs(self.exp_cfg.report_to, exist_ok=True)
-        conn = sqlite3.connect(
-            os.path.join(self.exp_cfg.report_to, "results.sqlite"), autocommit=False
-        )
-        with open(schema_fpath) as fd:
-            schema = fd.read()
-        conn.executescript(schema)
-        return conn
 
     def to_dict(self) -> dict[str, object]:
         """Convert the report to a JSON-compatible dictionary. Uses dataclasses.asdict() with custom handling for special types."""
@@ -166,7 +247,7 @@ class Report:
             "n_train": self.n_train,
             "n_test": len(self.predictions),
             "sampling": self.exp_cfg.sampling,
-            "model_method": model_method,
+            "model_method": self.exp_cfg.model.method,
             "model_org": self.exp_cfg.model.org,
             "model_ckpt": self.exp_cfg.model.ckpt,
             # MLLM-specific fields

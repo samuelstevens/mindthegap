@@ -454,3 +454,10 @@ I need to do the following:
 
 * [done] Make sure that class labels are balanced for 3 and 10.
 * [done] Figure out how to plot tasks with varying number of samples.
+
+# 03/06/2025
+
+Progress is going well.
+But I am running into sufficient errors with MLLMs that I want to introduce checkpointing and an automatic submission system so that I don't re-run experiments.
+This means that each task will be saved to the database as soon as it's done instead of hoping that all newt tasks finish before recording to the database.
+Furthermore, we will not duplicate tasks that have already been run for the given config.
