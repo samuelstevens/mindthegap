@@ -1,8 +1,20 @@
+# small_data_metrics/__init__.py
+
+```python
+""" """
+
+from . import cvml, third_party_models
+
+cvml.register_vision_backbone("timm-vit", third_party_models.TimmVit)
+cvml.register_vision_backbone("open-clip", third_party_models.OpenClip)
+
+```
+
 # small_data_metrics/cvml.py
 
 ```python
-"""
-Stores all vision backbones.
+"""Stores all vision backbones.
+
 Users can register new custom backbones from their code to evaluate on biobench using `register_vision_backbone`.
 As long as it satisfies the `biobench.cvml.VisionBackbone` interface, it will work will all tasks.
 
@@ -35,8 +47,7 @@ class EncodedImgBatch:
 
 @jaxtyped(typechecker=beartype.beartype)
 class VisionBackbone(torch.nn.Module):
-    """
-    A frozen vision model that embeds batches of images into batches of vectors.
+    """A frozen vision model that embeds batches of images into batches of vectors.
 
     To add new models to the benchmark, you can simply create a new class that satisfies this interface and register it.
     See `biobench.registry` for a tutorial on adding new vision backbones.
@@ -50,10 +61,7 @@ class VisionBackbone(torch.nn.Module):
         raise NotImplementedError(err_msg)
 
     def make_img_transform(self):
-        """
-        Return whatever function the backbone wants for image preprocessing.
-        This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone.
-        """
+        """Return whatever function the backbone wants for image preprocessing. This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone."""
         err_msg = f"{self.__class__.__name__} must implemented make_img_transform()."
         raise NotImplementedError(err_msg)
 
@@ -67,11 +75,17 @@ _global_backbone_registry: dict[str, type[VisionBackbone]] = {}
 
 
 @beartype.beartype
-def load_vision_backbone(
-    model_cfg: config.Model,
-) -> VisionBackbone:
-    """
-    Load a pretrained vision backbone.
+def load_vision_backbone(model_cfg: config.Model) -> VisionBackbone:
+    """Load a pretrained vision backbone.
+
+    Args:
+        model_cfg: Configuration object containing the organization ('org') and checkpoint ('ckpt') identifiers for the model.
+
+    Returns:
+        An initialized VisionBackbone instance ready for inference.
+
+    Raises:
+        ValueError: If the specified organization is not registered.
     """
     if model_cfg.org not in _global_backbone_registry:
         raise ValueError(f"Org '{model_cfg.org}' not found.")
@@ -82,9 +96,7 @@ def load_vision_backbone(
 
 @beartype.beartype
 def register_vision_backbone(model_org: str, cls: type[VisionBackbone]):
-    """
-    Register a new vision backbone class.
-    """
+    """Register a new vision backbone class."""
     if model_org in _global_backbone_registry:
         logger.warning("Overwriting key '%s' in registry.", model_org)
     _global_backbone_registry[model_org] = cls
@@ -92,1326 +104,15 @@ def register_vision_backbone(model_org: str, cls: type[VisionBackbone]):
 
 @beartype.beartype
 def list_vision_backbones() -> list[str]:
-    """
-    List all vision backbone model orgs.
-    """
+    """List all vision backbone model orgs."""
     return list(_global_backbone_registry.keys())
 
 ```
 
-# small_data_metrics/config.py
+# small_data_metrics/newt.py
 
 ```python
-import dataclasses
-import os.path
-import tomllib
-import typing
-
-
-@dataclasses.dataclass(frozen=True)
-class Model:
-    method: typing.Literal["cvml", "mllm"]
-    org: str
-    ckpt: str
-
-
-@dataclasses.dataclass(frozen=True)
-class Newt:
-    """Configuration options specific to the NeWT benchmark."""
-
-    # Filter options - can specify task names, clusters, sub-clusters, or combinations
-    tasks: list[str] | None = None
-    """List of specific NeWT task names to run. If None, all tasks are included unless filtered by other criteria."""
-
-    include_clusters: list[str] | None = None
-    """List of NeWT task clusters to run (e.g., "appearance", "behavior", "context"). If None, all clusters are included."""
-
-    include_subclusters: list[str] | None = None
-    """List of NeWT task sub-clusters to run (e.g., "species", "age", "health"). If None, all sub-clusters are included."""
-
-    exclude_tasks: list[str] | None = None
-    """List of task names to exclude even if they match other criteria."""
-
-    exclude_clusters: list[str] | None = None
-    """List of cluster names to exclude even if they contain tasks that match other criteria."""
-
-    exclude_subclusters: list[str] | None = None
-    """List of sub-cluster names to exclude even if they contain tasks that match other criteria."""
-
-
-@dataclasses.dataclass(frozen=True)
-class Experiment:
-    model: Model
-
-    n_train: int = -1
-    """Number of maximum training samples. Negative number means use all of them."""
-    n_test: int = -1
-    """Number of test samples. Negative number means use all of them."""
-    sampling: typing.Literal["uniform", "balanced"] = "uniform"
-
-    device: typing.Literal["cpu", "mps", "cuda"] = "cuda"
-    """which kind of accelerator to use."""
-    debug: bool = False
-    """whether to run in debug mode."""
-
-    ssl: bool = True
-    """Use SSL when connecting to remote servers to download checkpoints; use --no-ssl if your machine has certificate issues. See `biobench.third_party_models.get_ssl()` for a discussion of how this works."""
-    # Reporting and graphing.
-    report_to: str = os.path.join(".", "results")
-    """where to save reports to."""
-    graph: bool = True
-    """whether to make graphs."""
-    graph_to: str = os.path.join(".", "graphs")
-    """where to save graphs to."""
-    log_to: str = os.path.join(".", "logs")
-    """where to save logs to."""
-
-    # MLLM only
-    temp: float = 0.0
-    prompting: typing.Literal["single", "multi"] = "single"
-    cot_enabled: bool = False
-    parallel: int = 1
-    """Number of parallel requests per second to MLLM service providers."""
-
-    # CVML only
-    slurm: bool = False
-    """whether to use submitit to run jobs on a slurm cluster."""
-    slurm_acct: str = ""
-    """slurm account string."""
-    batch_size: int = 256
-    """Batch size for computer vision model."""
-    n_workers: int = 8
-    """Number of dataloader worker processes."""
-    seed: int = 17
-    """Radnom seed."""
-
-    newt_data: str = ""
-    newt: Newt = dataclasses.field(default_factory=Newt)
-
-    def to_dict(self) -> dict[str, object]:
-        return dataclasses.asdict(self)
-
-
-def load(path: str) -> list[Experiment]:
-    """
-    Load experiments from a TOML file.
-
-    None of the fields in Experiment are lists, so anytime we find a list in the TOML, we add another dimension to our grid search over all possible experiments.
-    """
-    with open(path, "rb") as f:
-        data = tomllib.load(f)
-
-    if not isinstance(data, dict):
-        raise ValueError(
-            f"TOML file {path} must contain a dictionary at the root level"
-        )
-
-    # Extract models list
-    models = data.pop("models", [])
-    if not isinstance(models, list):
-        raise ValueError("models must be a list of tables in TOML")
-
-    # Start with models as base experiments
-    experiments = [{"model": Model(**model)} for model in models]
-
-    # Handle NeWT config specially
-    newt = data.pop("newt", {})
-
-    # For each remaining field in the TOML
-    for key, value in data.items():
-        new_experiments = []
-
-        # Convert single values to lists
-        if not isinstance(value, list):
-            value = [value]
-
-        # For each existing partial experiment
-        for exp in experiments:
-            # Add every value for this field
-            for v in value:
-                new_exp = exp.copy()
-                new_exp[key] = v
-                new_experiments.append(new_exp)
-
-        experiments = new_experiments
-
-    # Now add the NeWT config to all experiments
-    for exp in experiments:
-        exp["newt"] = Newt(**newt)
-
-    # Convert dictionaries to Experiment objects
-    return [Experiment(**exp) for exp in experiments]
-
-```
-
-# small_data_metrics/simpleshot.py
-
-```python
-"""
-Implements normalized nearest-centroid classifiers, as described in [this paper](https://arxiv.org/abs/1911.04623).
-
-If you use this work, be sure to cite the original work:
-
-```
-@article{wang2019simpleshot,
-  title={Simpleshot: Revisiting nearest-neighbor classification for few-shot learning},
-  author={Wang, Yan and Chao, Wei-Lun and Weinberger, Kilian Q and Van Der Maaten, Laurens},
-  journal={arXiv preprint arXiv:1911.04623},
-  year={2019}
-}
-```
-"""
-
-import collections.abc
-
-import beartype
-import numpy as np
-import sklearn.neighbors
-import torch
-from jaxtyping import Float, Int, jaxtyped
-from torch import Tensor
-
-
-@jaxtyped(typechecker=beartype.beartype)
-def l2_normalize(
-    features: Float[Tensor, "n_examples dim"],
-) -> Float[Tensor, "n_examples dim"]:
-    """L2-normalize a batch of features.
-
-    Args:
-        features: batch of $d$-dimensional vectors.
-
-    Returns:
-        batch of $d$-dimensional vectors with unit L2 norm.
-    """
-    norms = np.linalg.norm(features, ord=2, axis=1, keepdims=True)
-    return features / norms
-
-
-@beartype.beartype
-def batched_idx(
-    total_size: int, batch_size: int
-) -> collections.abc.Iterator[tuple[int, int]]:
-    """
-    Iterate over (start, end) indices for total_size examples, where end - start is at most batch_size.
-
-    Args:
-        total_size: total number of examples
-        batch_size: maximum distance between the generated indices.
-
-    Returns:
-        A generator of (int, int) tuples that can slice up a list or a tensor.
-    """
-    for start in range(0, total_size, batch_size):
-        stop = min(start + batch_size, total_size)
-        yield start, stop
-
-
-@jaxtyped(typechecker=beartype.beartype)
-def simpleshot(
-    x_train: Float[Tensor, "n_train dim"],
-    y_train: Int[Tensor, " n_train"],
-    x_test: Float[Tensor, "n_test dim"],
-    y_test: Int[Tensor, " n_test"],
-    batch_size: int,
-    device: str,
-) -> Float[Tensor, " n_test"]:
-    """
-    Applies simpleshot to features. Returns the list of scores for x_test.
-
-    Args:
-        ...
-
-    Returns:
-        A tensor of 0/1 scores, one for each test example, only considering exact match.
-    """
-    x_mean = x_train.mean(axis=0, keepdims=True)
-
-    x_train = x_train - x_mean
-    x_train = l2_normalize(x_train)
-
-    x_test = x_test - x_mean
-    x_test = l2_normalize(x_test)
-
-    clf = sklearn.neighbors.NearestCentroid()
-    clf.fit(x_train, y_train)
-
-    # Do this next step on the GPU to make it fast.
-    # Goes from 1 batch/sec to 77 batch/sec
-    centroids = torch.from_numpy(clf.centroids_).to(device)
-    x_test = x_test.to(device)
-    y_test = y_test.to(device)
-
-    scores = []
-    for start, stop in batched_idx(len(x_test), batch_size):
-        x_batch = x_test[start:stop]
-        y_batch = y_test[start:stop]
-        distances = torch.linalg.vector_norm(x_batch[:, None] - centroids, axis=2)
-        preds = torch.argmin(distances, dim=1)
-
-        scores.append((preds == y_batch).type(torch.float32))
-
-    return torch.cat(scores, axis=0)
-
-```
-
-# small_data_metrics/third_party_models.py
-
-```python
-import logging
-import os
-
-import beartype
-from jaxtyping import Float, jaxtyped
-from torch import Tensor
-
-from . import cvml
-
-logger = logging.getLogger("third_party")
-
-
-@beartype.beartype
-def get_cache_dir() -> str:
-    cache_dir = ""
-    for var in ("SMALL_DATA_METRICS_CACHE", "HF_HOME", "HF_HUB_CACHE"):
-        cache_dir = cache_dir or os.environ.get(var, "")
-    return cache_dir or "."
-
-
-@beartype.beartype
-def get_ssl() -> bool:
-    """
-    Checks whether BIOBENCH_DISABLE_SSL is present in the environment.
-
-    We use environment variables rather than a boolean argument because
-
-    1. This is only needed on some systems, like OSC.
-    2. Every benchmark needs it in exactly the same way, so it would show up in every benchmark script as more "noise".
-    3. It is not manipulated throughout the running of the program. It's a global variable that's set at the start of the jobs.
-
-    But in general, we should not use environment variables to manage program state.
-
-    Returns:
-        A boolean that's true if we should use SSL and false if not.
-    """
-    disable = os.environ.get("BIOBENCH_DISABLE_SSL", None)
-    return not disable
-
-
-@jaxtyped(typechecker=beartype.beartype)
-class OpenClip(cvml.VisionBackbone):
-    """
-    Loads checkpoints from [open_clip](https://github.com/mlfoundations/open_clip), an open-source reproduction of the original [CLIP](https://arxiv.org/abs/2103.00020) paper.
-
-    Checkpoints are in the format `<ARCH>/<CKPT>`.
-    Look at the [results file](https://github.com/mlfoundations/open_clip/blob/main/docs/openclip_results.csv) for the pretrained models.
-    For example, to load a ViT-B/16 train on Apple's Data Filtering Networks dataset, you would use `ViT-B-16/dfn2b`.
-    """
-
-    def __init__(self, ckpt: str, **kwargs):
-        super().__init__()
-        import open_clip
-
-        if not get_ssl():
-            logger.warning("Ignoring SSL certs. Try not to do this!")
-            # https://github.com/openai/whisper/discussions/734#discussioncomment-4491761
-            # Ideally we don't have to disable SSL but we are only downloading weights.
-            import ssl
-
-            ssl._create_default_https_context = ssl._create_unverified_context
-
-        if ckpt.startswith("hf-hub:"):
-            clip, self.img_transform = open_clip.create_model_from_pretrained(ckpt)
-        else:
-            arch, ckpt = ckpt.split("/")
-            clip, self.img_transform = open_clip.create_model_from_pretrained(
-                arch, pretrained=ckpt, cache_dir=get_cache_dir()
-            )
-
-        self.model = clip.visual
-        self.model.output_tokens = True  # type: ignore
-
-    def make_img_transform(self):
-        return self.img_transform
-
-    def img_encode(
-        self, batch: Float[Tensor, "batch 3 width height"]
-    ) -> cvml.EncodedImgBatch:
-        result = self.model(batch)
-        # Sometimes the model does not return patch features if it has none.
-        if isinstance(result, tuple):
-            img, patches = result
-            return cvml.EncodedImgBatch(img, patches)
-        else:
-            return cvml.EncodedImgBatch(result, None)
-
-
-@jaxtyped(typechecker=beartype.beartype)
-class TimmVit(cvml.VisionBackbone):
-    """ """
-
-    # TODO: docs + describe the ckpt format.
-    def __init__(self, ckpt: str, **kwargs):
-        super().__init__()
-        import timm
-
-        err_msg = "You are trying to load a non-ViT checkpoint; the `img_encode()` method assumes `model.forward_features()` will return features with shape (batch, n_patches, dim) which is not true for non-ViT checkpoints."
-        assert "vit" in ckpt, err_msg
-        self.model = timm.create_model(ckpt, pretrained=True)
-
-        data_cfg = timm.data.resolve_data_config(self.model.pretrained_cfg)
-        self.img_transform = timm.data.create_transform(**data_cfg)
-
-    def make_img_transform(self):
-        return self.img_transform
-
-    def img_encode(
-        self, batch: Float[Tensor, "batch 3 width height"]
-    ) -> cvml.EncodedImgBatch:
-        patches = self.model.forward_features(batch)
-        # Use [CLS] token if it exists, otherwise do a maxpool
-        if self.model.num_prefix_tokens > 0:
-            img = patches[:, 0, ...]
-        else:
-            img = patches.max(axis=1).values
-
-        # Remove all non-image patches, like the [CLS] token or registers
-        patches = patches[:, self.model.num_prefix_tokens :, ...]
-
-        return cvml.EncodedImgBatch(img, patches)
-
-
-@jaxtyped(typechecker=beartype.beartype)
-class TorchvisionModel(cvml.VisionBackbone):
-    def __init__(self, ckpt: str):
-        import torchvision
-
-        arch, weights = ckpt.split("/")
-        self.model = getattr(torchvision, arch)(weights=weights)
-        self.model.eval()
-
-    def img_encode(
-        self, batch: Float[Tensor, "batch 3 width height"]
-    ) -> cvml.EncodedImgBatch:
-        breakpoint()
-
-    def make_img_transform(self):
-        # Per the docs, each set of weights has its own transform: https://pytorch.org/vision/stable/models.html#using-the-pre-trained-models
-        return self.model.weights.transforms()
-
-```
-
-# small_data_metrics/__init__.py
-
-```python
-""" """
-
-from . import cvml, third_party_models
-
-cvml.register_vision_backbone("timm-vit", third_party_models.TimmVit)
-cvml.register_vision_backbone("open-clip", third_party_models.OpenClip)
-
-```
-
-# small_data_metrics/mllms.py
-
-```python
-import asyncio
-import collections
-import dataclasses
-import logging
-import time
-import typing
-
-import beartype
-import litellm
-
-from . import config
-
-logger = logging.getLogger("mllms")
-
-# Disable logging for packages that yap a lot.
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("LiteLLM").setLevel(logging.WARNING)
-
-
-###################
-# Data Structures #
-###################
-
-
-@beartype.beartype
-@dataclasses.dataclass(frozen=True)
-class Example:
-    img_b64: str
-    user: str
-    assistant: str
-
-
-@dataclasses.dataclass(frozen=True)
-class Mllm:
-    name: str
-    max_tokens: int
-    usd_per_m_input: float
-    usd_per_m_output: float
-    quantizations: list[str] = dataclasses.field(default_factory=list)
-
-
-#############
-# Functions #
-#############
-
-
-@beartype.beartype
-def fits(
-    cfg: config.Experiment, examples: list[Example], img_b64: str, user: str
-) -> bool:
-    mllm = load_mllm(cfg.model)
-    messages = make_prompt(cfg, examples, img_b64, user)
-    n_tokens = litellm.token_counter(model=cfg.model.ckpt, messages=messages)
-    return n_tokens <= mllm.max_tokens
-
-
-@beartype.beartype
-async def send(
-    cfg: config.Experiment,
-    examples: list[Example],
-    img_b64: str,
-    user: str,
-    *,
-    max_retries: int = 5,
-    system: str = "",
-) -> str:
-    """
-    Send a message to the LLM and get the response.
-
-    Args:
-        cfg: TODO
-        examples: Few-shot examples.
-        image: The input image.
-        user: The user request.
-
-    Returns:
-        The LLM's response as a string.
-
-    Raises:
-        ValueError: If required settings are missing
-        RuntimeError: If LLM call fails
-    """
-
-    messages = make_prompt(cfg, examples, img_b64, user)
-    mllm = load_mllm(cfg.model)
-
-    # Make LLM call with retries
-    last_err = None
-
-    for attempt in range(max_retries):
-        try:
-            if attempt > 0:
-                # Exponential backoff: 2, 4, 8, 16, ... seconds
-                wait_time_s = 2**attempt
-                logger.warning(
-                    "LLM call failed (attempt %d/%d): %s. Retrying in %d seconds.",
-                    attempt,
-                    max_retries,
-                    last_err,
-                    wait_time_s,
-                )
-                await asyncio.sleep(wait_time_s)
-
-            # Make LLM call
-            response = await litellm.acompletion(
-                model=cfg.model.org + "/" + cfg.model.ckpt,
-                messages=messages,
-                temperature=cfg.temp,
-                provider={"quantizations": mllm.quantizations},
-            )
-        except RuntimeError as err:
-            last_err = err
-            if attempt == max_retries - 1:
-                raise RuntimeError(f"Max retries ({max_retries}) exceeded: {err}")
-
-        except litellm.APIConnectionError as err:
-            should_retry = litellm._should_retry(err.status_code)
-            if should_retry:
-                last_err = err
-                if attempt == max_retries - 1:
-                    raise RuntimeError(f"Max retries ({max_retries}) exceeded: {err}")
-                continue
-            raise RuntimeError(f"Non-retryable API connection error: {err}") from err
-
-        except (litellm.APIError, litellm.BadRequestError) as err:
-            # For some godforsaken reason, litellm does not parse the rate-limit error response from OpenRouter.
-            # It just raises a litellm.APIError, which happens when it gets a bad response.
-            # So in the interest of not failing, if err.llm_provider is 'openrouter' we assume it's a rate limit, and try again.
-            if getattr(err, "llm_provider", None) == "openrouter":
-                # Treat as rate limit for OpenRouter
-                last_err = err
-                if attempt == max_retries - 1:
-                    raise RuntimeError(f"Max retries ({max_retries}) exceeded: {err}")
-                continue
-            # For other providers, raise the error
-            raise RuntimeError(f"API error: {err}") from err
-
-        # Extract response and update history
-        response = response.choices[0].message.content
-        if response is None:
-            return ""
-        return response
-
-
-#############
-# PROMPTING #
-#############
-
-
-@beartype.beartype
-def make_prompt(
-    cfg: config.Experiment,
-    examples: list[Example],
-    img_b64: str,
-    user: str,
-    *,
-    system: str = "",
-) -> list[object]:
-    if cfg.prompting == "single":
-        return _make_single_turn_prompt(examples, img_b64, user, system=system)
-    elif cfg.prompting == "multi":
-        return _make_multi_turn_prompt(examples, img_b64, user, system=system)
-    else:
-        typing.assert_never(cfg.prompting)
-
-
-@beartype.beartype
-def _make_single_turn_prompt(
-    examples: list[Example],
-    img_b64: str,
-    user: str,
-    *,
-    system: str = "",
-) -> list[object]:
-    messages = []
-
-    if system:
-        messages.append({"role": "system", "content": system})
-
-    content = []
-    for example in examples:
-        content.append({"type": "image_url", "image_url": {"url": example.img_b64}})
-        content.append({"type": "text", "text": f"{example.user}\n{example.assistant}"})
-
-    content.append({"type": "image_url", "image_url": {"url": img_b64}})
-    content.append({"type": "text", "text": user})
-
-    messages.append({"role": "user", "content": content})
-
-    return messages
-
-
-@beartype.beartype
-def _make_multi_turn_prompt(
-    examples: list[Example],
-    img_b64: str,
-    user: str,
-    *,
-    system: str = "",
-) -> list[object]:
-    # Format messages for chat completion
-    messages = []
-
-    if system:
-        messages.append({"role": "system", "content": system})
-
-    for example in examples:
-        messages.append({
-            "role": "user",
-            "content": [
-                {"type": "image_url", "image_url": {"url": example.img_b64}},
-                {"type": "text", "text": example.user},
-            ],
-        })
-        messages.append({"role": "assistant", "content": example.assistant})
-
-    # Add current message
-    messages.append({
-        "role": "user",
-        "content": [
-            {"type": "image_url", "image_url": {"url": img_b64}},
-            {"type": "text", "text": user},
-        ],
-    })
-    return messages
-
-
-###############
-# PARALLELISM #
-###############
-
-
-@beartype.beartype
-class RateLimiter:
-    def __init__(self, max_rate: int, window_s: float = 1.0):
-        self.max_rate = max_rate
-        self.window_s = window_s
-        self.timestamps = collections.deque()
-
-    async def acquire(self):
-        now = time.monotonic()
-
-        # Remove timestamps older than our window
-        while self.timestamps and now - self.timestamps[0] > self.window_s:
-            self.timestamps.popleft()
-
-        # If we're at max capacity, wait until oldest timestamp expires
-        if len(self.timestamps) >= self.max_rate:
-            wait_time = self.timestamps[0] + self.window_s - now
-            if wait_time > 0:
-                if wait_time > 1.0:
-                    logger.info("Sleeping for %.2f seconds.", wait_time)
-                await asyncio.sleep(wait_time)
-
-        # Add current timestamp
-        self.timestamps.append(time.monotonic())
-
-
-############
-# REGISTRY #
-############
-
-
-_global_mllm_registry: dict[tuple[str, str], Mllm] = {}
-
-
-@beartype.beartype
-def load_mllm(cfg: config.Model) -> Mllm:
-    """
-    Load a multimodal LLM configuration.
-    """
-    key = (cfg.org, cfg.ckpt)
-    if key not in _global_mllm_registry:
-        raise ValueError(f"Model '{key}' not found.")
-
-    return _global_mllm_registry[key]
-
-
-@beartype.beartype
-def register_mllm(model_org: str, mllm: Mllm):
-    """
-    Register a new multimodal LLM configuration.
-    """
-    key = (model_org, mllm.name)
-    if key in _global_mllm_registry:
-        logger.warning("Overwriting key '%s' in registry.", key)
-    _global_mllm_registry[key] = mllm
-
-
-@beartype.beartype
-def list_mllms() -> list[tuple[str, str]]:
-    """
-    List all registered multimodal LLM models.
-    """
-    return list(_global_mllm_registry.keys())
-
-
-###################
-# Built-in models #
-###################
-
-# Open-Source
-
-register_mllm(
-    "openrouter",
-    Mllm("meta-llama/llama-3.2-3b-instruct", 131_000, 0.015, 0.025, ["fp32", "bf16"]),
-)
-register_mllm(
-    "openrouter",
-    Mllm(
-        "meta-llama/llama-3.2-11b-vision-instruct",
-        16_384,
-        0.055,
-        0.055,
-        ["fp32", "bf16"],
-    ),
-)
-register_mllm(
-    "openrouter",
-    Mllm("qwen/qwen-2-vl-7b-instruct", 4096, 0.1, 0.1, ["fp32", "bf16"]),
-)
-
-# Proprietary
-
-register_mllm(
-    "openrouter",
-    Mllm("google/gemini-flash-1.5-8b", 1_000_000, 0.0375, 0.15),
-)
-register_mllm(
-    "openrouter",
-    Mllm("google/gemini-2.0-flash-lite-001", 1_000_000, 0.075, 0.3),
-)
-register_mllm(
-    "openrouter",
-    Mllm("openai/gpt-4o-mini-2024-07-18", 128_000, 0.15, 0.6),
-)
-
-```
-
-# small_data_metrics/helpers.py
-
-```python
-"""
-Useful helpers for more than two tasks that don't fit anywhere else.
-"""
-
-import collections.abc
-import io
-import logging
-import os.path
-import time
-import typing
-
-import beartype
-import pybase64
-import submitit
-from PIL import Image
-
-
-@beartype.beartype
-class progress:
-    def __init__(self, it, *, every: int = 10, desc: str = "progress"):
-        """
-        Wraps an iterable with a logger like tqdm but doesn't use any control codes to manipulate a progress bar, which doesn't work well when your output is redirected to a file. Instead, simple logging statements are used, but it includes quality-of-life features like iteration speed and predicted time to finish.
-
-        Args:
-            it: Iterable to wrap.
-            every: How many iterations between logging progress.
-            desc: What to name the logger.
-        """
-        self.it = it
-        self.every = every
-        self.logger = logging.getLogger(desc)
-
-    def __iter__(self):
-        start = time.time()
-        for i, obj in enumerate(self.it):
-            yield obj
-
-            if (i + 1) % self.every == 0:
-                now = time.time()
-                duration_s = now - start
-                per_min = (i + 1) / (duration_s / 60)
-
-                if isinstance(self.it, collections.abc.Sized):
-                    pred_min = (len(self) - (i + 1)) / per_min
-                    self.logger.info(
-                        "%d/%d (%.1f%%) | %.1f it/m (expected finish in %.1fm)",
-                        i + 1,
-                        len(self),
-                        (i + 1) / len(self) * 100,
-                        per_min,
-                        pred_min,
-                    )
-                else:
-                    self.logger.info("%d/? | %.1f it/m", i + 1, per_min)
-
-    def __len__(self) -> int:
-        return len(self.it)
-
-
-@beartype.beartype
-def fs_safe(string: str) -> str:
-    """Makes a string safe for filesystems by removing typical special characters."""
-    return string.replace(":", "_").replace("/", "_")
-
-
-@beartype.beartype
-def write_hparam_sweep_plot(
-    task: str,
-    model: str,
-    clf,
-    x: str = "param_ridgeclassifier__alpha",
-    y: str = "mean_test_score",
-) -> str:
-    import matplotlib.pyplot as plt
-    import polars as pl
-
-    df = pl.DataFrame(clf.cv_results_)
-
-    fig, ax = plt.subplots()
-
-    if "n_resources" in df.columns:
-        for n_resources in df.get_column("n_resources").unique().sort():
-            ax.scatter(
-                x=df.filter(pl.col("n_resources") == n_resources)[x],
-                y=df.filter(pl.col("n_resources") == n_resources)[y],
-                label=f"{n_resources} ex.",
-            )
-        fig.legend()
-    else:
-        ax.scatter(x=df[x], y=df[y])
-
-    ax.set_xlabel(x)
-    ax.set_ylabel(y)
-    ax.set_xscale("log")
-    ax.set_title(model)
-
-    fig.tight_layout()
-    filepath = os.path.join("logs", f"{task}_{fs_safe(model)}_hparam.png")
-    fig.savefig(filepath)
-    return filepath
-
-
-@beartype.beartype
-def load_img_b64(path: str) -> str:
-    img = Image.open(path)
-    buf = io.BytesIO()
-    img.save(buf, format="webp")
-    b64 = pybase64.b64encode(buf.getvalue())
-    s64 = b64.decode("utf8")
-    return "data:image/webp;base64," + s64
-
-
-R = typing.TypeVar("R", covariant=True)
-
-
-def as_completed(
-    jobs: typing.Sequence[submitit.Job[R]],
-    timeout: int | float | None = None,
-    poll_frequency: float = 10,
-) -> typing.Iterator[submitit.Job[R]]:
-    """
-    Yields jobs as they complete (finished, failed or were cancelled).
-    Raises a TimeoutError if the result isn’t available after timeout seconds.
-    timeout can be an int or float. If timeout is not specified or None, there is no
-    limit to the wait time.
-
-    Parameters
-    ----------
-    jobs: list
-        Jobs instances
-
-    timeout: int/float
-        Maximum time (in sec) to wait for jobs completion
-
-    poll_frequency: float
-        Frequency in second at which we check job status.
-
-    Yields
-    ------
-    Job
-        The next completed job
-    """
-    start = time.time()
-    jobs_done: set[int] = set()
-    while True:
-        if timeout is not None and time.time() - start > timeout:
-            raise TimeoutError
-        for i, job in enumerate(jobs):
-            if i in jobs_done:
-                continue
-            if job.done():
-                jobs_done.add(i)
-                yield job
-        if len(jobs_done) == len(jobs):
-            break
-        time.sleep(poll_frequency)
-
-```
-
-# small_data_metrics/reporting.py
-
-```python
-""" """
-
-import dataclasses
-import json
-import os
-import pathlib
-import socket
-import sqlite3
-import subprocess
-import sys
-import time
-import typing
-
-import beartype
-import torch
-from jaxtyping import jaxtyped
-
-from . import config
-
-schema_fpath = pathlib.Path(__file__).parent / "schema.sql"
-
-
-@jaxtyped(typechecker=beartype.beartype)
-@dataclasses.dataclass(frozen=True)
-class Prediction:
-    """An individual test prediction."""
-
-    img_id: str
-    """Whatever kind of ID; used to find the original image/example."""
-    score: float
-    """Test score; typically 0 or 1 for classification tasks."""
-    n_train: int
-    """Number of training examples used in this prection."""
-    info: dict[str, object]
-    """Any additional information included. This might be the original class, the true label, etc."""
-
-    def to_dict(self) -> dict[str, object]:
-        """Convert prediction to a JSON-compatible dictionary."""
-        return dataclasses.asdict(self)
-
-
-def get_git_hash() -> str:
-    """
-    Returns the hash of the current git commit, assuming we are in a git repo.
-    """
-    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-
-
-def get_gpu_name() -> str:
-    if torch.cuda.is_available():
-        return torch.cuda.get_device_properties(0).name
-    else:
-        return ""
-
-
-@dataclasses.dataclass
-class Report:
-    """
-    The result of running a benchmark task.
-
-    This class is designed to store results and metadata, with experiment configuration
-    stored in the exp_cfg field to avoid duplication.
-    """
-
-    task_name: str
-    predictions: list[Prediction]
-    n_train: int
-    """Number of training samples *actually* used."""
-
-    exp_cfg: config.Experiment
-
-    _: dataclasses.KW_ONLY
-
-    task_cluster: str | None = None
-    """The cluster this task belongs to (e.g., 'birds', 'plants')."""
-    task_subcluster: str | None = None
-    """The subcluster this task belongs to (e.g., 'songbirds', 'trees')."""
-
-    # MLLM-specific
-    parse_success_rate: float | None = None
-    usd_per_answer: float | None = None
-
-    # CVML-specific
-    classifier: typing.Literal["knn", "svm", "ridge"] | None = None
-
-    # Stuff for trying to reproduce this result. These are filled in by default.
-    argv: list[str] = dataclasses.field(default_factory=lambda: sys.argv)
-    """Command used to get this report."""
-    commit: str = get_git_hash()
-    """Git commit for this current report."""
-    posix_time: float = dataclasses.field(default_factory=time.time)
-    """Time when this report was constructed."""
-    gpu_name: str = dataclasses.field(default_factory=get_gpu_name)
-    """Name of the GPU that ran this experiment."""
-    hostname: str = dataclasses.field(default_factory=socket.gethostname)
-    """Machine hostname that ran this experiment."""
-
-    def __repr__(self):
-        model_name = self.exp_cfg.model.ckpt
-        return f"Report({self.task_name}, {model_name}, {len(self.predictions)} predictions)"
-
-    def get_conn(self) -> sqlite3.Connection:
-        os.makedirs(self.exp_cfg.report_to, exist_ok=True)
-        conn = sqlite3.connect(
-            os.path.join(self.exp_cfg.report_to, "results.sqlite"), autocommit=False
-        )
-        with open(schema_fpath) as fd:
-            schema = fd.read()
-        conn.executescript(schema)
-        return conn
-
-    def to_dict(self) -> dict[str, object]:
-        """
-        Convert the report to a JSON-compatible dictionary.
-        Uses dataclasses.asdict() with custom handling for special types.
-        """
-
-        dct = dataclasses.asdict(self)
-
-        # Handle special cases
-        dct["exp_cfg"] = self.exp_cfg.to_dict()
-        dct["predictions"] = [p.to_dict() for p in self.predictions]
-
-        return dct
-
-    def write(self, conn: sqlite3.Connection | None = None):
-        """
-        Write this report to a SQLite database.
-
-        Args:
-            conn: SQLite connection to write to
-        """
-        if not conn:
-            conn = self.get_conn()
-
-        # Insert into results table
-        cursor = conn.cursor()
-
-        # Determine method-specific fields
-        model_method = (
-            "mllm" if self.exp_cfg.model.org in ["anthropic", "openai"] else "cvml"
-        )
-
-        # Prepare values for results table
-        results_values = {
-            "task_name": self.task_name,
-            "task_cluster": self.task_cluster,
-            "task_subcluster": self.task_subcluster,
-            "n_train": self.n_train,
-            "n_test": len(self.predictions),
-            "sampling": self.exp_cfg.sampling,
-            "model_method": model_method,
-            "model_org": self.exp_cfg.model.org,
-            "model_ckpt": self.exp_cfg.model.ckpt,
-            # MLLM-specific fields
-            "prompting": self.exp_cfg.prompting
-            if hasattr(self.exp_cfg, "prompting")
-            else None,
-            "cot_enabled": 1
-            if hasattr(self.exp_cfg, "cot") and self.exp_cfg.cot
-            else 0,
-            "parse_success_rate": self.parse_success_rate,
-            "usd_per_answer": self.usd_per_answer,
-            # CVML-specific fields
-            "classifier_type": self.classifier,
-            # Configuration and metadata
-            "exp_cfg": json.dumps(self.exp_cfg.to_dict()),
-            "argv": json.dumps(self.argv),
-            "git_commit": self.commit,
-            "posix": int(self.posix_time),
-            "gpu_name": self.gpu_name,
-            "hostname": self.hostname,
-        }
-
-        # Build the SQL query
-        columns = ", ".join(results_values.keys())
-        placeholders = ", ".join(["?"] * len(results_values))
-
-        # Insert into results table
-        cursor.execute(
-            f"INSERT INTO results ({columns}) VALUES ({placeholders})",
-            list(results_values.values()),
-        )
-
-        # Get the rowid of the inserted result
-        result_id = cursor.lastrowid
-
-        # Insert predictions
-        for pred in self.predictions:
-            cursor.execute(
-                "INSERT INTO predictions (img_id, score, n_train, info, result_id) VALUES (?, ?, ?, ?, ?)",
-                (
-                    pred.img_id,
-                    pred.score,
-                    pred.n_train,
-                    json.dumps(pred.info),
-                    result_id,
-                ),
-            )
-
-        # Commit the transaction
-        conn.commit()
-
-
-##########
-# COLORS #
-##########
-
-
-# https://coolors.co/palette/001219-005f73-0a9396-94d2bd-e9d8a6-ee9b00-ca6702-bb3e03-ae2012-9b2226
-
-BLACK_HEX = "001219"
-BLACK_RGB = (0, 18, 25)
-BLACK_RGB01 = tuple(c / 256 for c in BLACK_RGB)
-
-BLUE_HEX = "005f73"
-BLUE_RGB = (0, 95, 115)
-BLUE_RGB01 = tuple(c / 256 for c in BLUE_RGB)
-
-CYAN_HEX = "0a9396"
-CYAN_RGB = (10, 147, 150)
-CYAN_RGB01 = tuple(c / 256 for c in CYAN_RGB)
-
-SEA_HEX = "94d2bd"
-SEA_RGB = (148, 210, 189)
-SEA_RGB01 = tuple(c / 256 for c in SEA_RGB)
-
-CREAM_HEX = "e9d8a6"
-CREAM_RGB = (233, 216, 166)
-CREAM_RGB01 = tuple(c / 256 for c in CREAM_RGB)
-
-GOLD_HEX = "ee9b00"
-GOLD_RGB = (238, 155, 0)
-GOLD_RGB01 = tuple(c / 256 for c in GOLD_RGB)
-
-ORANGE_HEX = "ca6702"
-ORANGE_RGB = (202, 103, 2)
-ORANGE_RGB01 = tuple(c / 256 for c in ORANGE_RGB)
-
-RUST_HEX = "bb3e03"
-RUST_RGB = (187, 62, 3)
-RUST_RGB01 = tuple(c / 256 for c in RUST_RGB)
-
-SCARLET_HEX = "ae2012"
-SCARLET_RGB = (174, 32, 18)
-SCARLET_RGB01 = tuple(c / 256 for c in SCARLET_RGB)
-
-RED_HEX = "9b2226"
-RED_RGB = (155, 34, 38)
-RED_RGB01 = tuple(c / 256 for c in RED_RGB)
-
-ALL_HEX = [
-    BLACK_HEX,
-    BLUE_HEX,
-    CYAN_HEX,
-    SEA_HEX,
-    CREAM_HEX,
-    GOLD_HEX,
-    ORANGE_HEX,
-    RUST_HEX,
-    SCARLET_HEX,
-    RED_HEX,
-]
-
-ALL_RGB01 = [
-    BLACK_RGB01,
-    BLUE_RGB01,
-    CYAN_RGB01,
-    SEA_RGB01,
-    CREAM_RGB01,
-    GOLD_RGB01,
-    ORANGE_RGB01,
-    RUST_RGB01,
-    SCARLET_RGB01,
-    RED_RGB01,
-]
-
-```
-
-# small_data_metrics/newt/download.py
-
-```python
-# /// script
-# requires-python = ">=3.12"
-# dependencies = [
-#     "requests",
-#     "tqdm",
-#     "tyro",
-# ]
-# ///
-"""
-A script to download the NeWT dataset.
-
-Run with:
-
-1. `python biobench/newt/download.py --help` if `biobench/` is in your $PWD.
-2. `python -m biobench.newt.download --help` if you have installed `biobench` as a package.
-"""
-
-import dataclasses
-import os.path
-import tarfile
-
-import requests
-import tqdm
-import tyro
-
-images_url = (
-    "https://ml-inat-competition-datasets.s3.amazonaws.com/newt/newt2021_images.tar.gz"
-)
-labels_url = "https://ml-inat-competition-datasets.s3.amazonaws.com/newt/newt2021_labels.csv.tar.gz"
-
-
-@dataclasses.dataclass(frozen=True)
-class Args:
-    """Configure download options."""
-
-    dir: str = "."
-    """Where to save data."""
-
-    chunk_size_kb: int = 1
-    """How many KB to download at a time before writing to file."""
-
-    images: bool = True
-    """Whether to download images [4.1GB]."""
-    labels: bool = True
-    """Whether to download labels."""
-
-
-def main(args: Args):
-    """Download NeWT."""
-    os.makedirs(args.dir, exist_ok=True)
-    chunk_size = int(args.chunk_size_kb * 1024)
-    labels_tar_path = os.path.join(args.dir, "labels.tar")
-    images_tar_path = os.path.join(args.dir, "images.tar")
-    labels_csv_name = "newt2021_labels.csv"
-    labels_csv_path = os.path.join(args.dir, labels_csv_name)
-    images_dir_name = "newt2021_images"
-    images_dir_path = os.path.join(args.dir, images_dir_name)
-
-    if args.labels:
-        # Download labels
-        r = requests.get(labels_url, stream=True)
-        r.raise_for_status()
-
-        with open(labels_tar_path, "wb") as fd:
-            for chunk in r.iter_content(chunk_size=chunk_size):
-                fd.write(chunk)
-        print(f"Downloaded labels: {labels_tar_path}.")
-
-    if args.images:
-        # Download images.
-        r = requests.get(images_url, stream=True)
-        r.raise_for_status()
-
-        n_bytes = int(r.headers["content-length"])
-
-        with open(images_tar_path, "wb") as fd:
-            for chunk in tqdm.tqdm(
-                r.iter_content(chunk_size=chunk_size),
-                total=n_bytes / chunk_size,
-                unit="b",
-                unit_scale=1,
-                unit_divisor=1024,
-                desc="Downloading images",
-            ):
-                fd.write(chunk)
-        print(f"Downloaded images: {images_tar_path}.")
-
-    with tarfile.open(labels_tar_path, "r") as tar:
-        tar.extract(labels_csv_name, path=args.dir, filter="data")
-    print(f"Extracted labels: {labels_csv_path}.")
-
-    with open(labels_csv_path) as fd:
-        n_images = len(fd.read().split("\n")) - 1
-
-    with tarfile.open(images_tar_path, "r") as tar:
-        for member in tqdm.tqdm(tar, desc="Extracting images", total=n_images):
-            tar.extract(member, path=args.dir, filter="data")
-    print(f"Extracted images: {images_dir_path}.")
-
-
-if __name__ == "__main__":
-    main(tyro.cli(Args))
-
-```
-
-# small_data_metrics/newt/__init__.py
-
-```python
-"""
-# NeWT: Natural World Tasks
+"""NeWT: Natural World Tasks.
 
 NeWT is a collection of 164 binary classification tasks related to visual understanding of the natural world ([CVPR 2021 paper](https://arxiv.org/abs/2103.16483), [code](https://github.com/visipedia/newt/tree/main)).
 
@@ -1431,7 +132,6 @@ If you use this evaluation, be sure to cite the original work:
 """
 
 import asyncio
-import collections.abc
 import dataclasses
 import difflib
 import logging
@@ -1449,11 +149,11 @@ import sklearn.pipeline
 import sklearn.preprocessing
 import sklearn.svm
 import torch
-from jaxtyping import Float, Int, Integer, jaxtyped
+from jaxtyping import Float, Int, Integer, Shaped, jaxtyped
 from PIL import Image
 from torch import Tensor
 
-from .. import config, cvml, helpers, mllms, reporting
+from . import config, cvml, helpers, mllms, reporting
 
 logger = logging.getLogger("newt")
 
@@ -1464,56 +164,73 @@ logger = logging.getLogger("newt")
 
 
 @beartype.beartype
-def benchmark_cvml(cfg: config.Experiment) -> list[reporting.Report]:
-    rng = random.Random(cfg.seed)
+def eval_task_cvml(cfg: config.Experiment, task_name: str) -> reporting.Report:
+    """Benchmark a computer vision model on a task from the NeWT benchmark.
+
+    Args:
+        cfg: Configuration for the experiment, including model, dataset paths, and parameters for training and evaluation.
+        task_name: Specific task name.
+
+    Returns:
+        A Report object containing evaluation results for the task.
+    """
+    rng_np = np.random.default_rng(seed=cfg.seed)
 
     backbone = cvml.load_vision_backbone(cfg.model)
 
-    reports = []
-    for train_dataset, test_dataset in helpers.progress(
-        get_all_tasks_cvml(cfg, backbone, rng), every=1, desc="tasks"
-    ):
-        x_train = train_dataset.x.numpy()
-        y_train = train_dataset.y.numpy()
-        x_test = test_dataset.x.numpy()
-        y_test = test_dataset.y.numpy()
+    train_dataset, test_dataset = get_splits_cvml(cfg, backbone, task_name, rng_np)
+    x_train = train_dataset.x.numpy()
+    y_train = train_dataset.y.numpy()
+    x_test = test_dataset.x.numpy()
+    y_test = test_dataset.y.numpy()
 
-        n_train = len(x_train)
-        assert n_train >= 10
+    n_train = len(x_train)
+    assert n_train >= 2
 
-        x_mean = x_train.mean(axis=0, keepdims=True)
+    x_mean = x_train.mean(axis=0, keepdims=True)
 
-        x_train = x_train - x_mean
-        x_train = l2_normalize(x_train)
+    x_train = x_train - x_mean
+    x_train = l2_normalize(x_train)
 
-        x_test = x_test - x_mean
-        x_test = l2_normalize(x_test)
+    x_test = x_test - x_mean
+    x_test = l2_normalize(x_test)
 
-        svc = init_svc(n_train)
-        svc.fit(x_train, y_train)
+    svc = init_svc(n_train)
+    svc.fit(x_train, y_train)
 
-        y_pred = svc.predict(x_test)
+    y_pred = svc.predict(x_test)
 
-        info = {
-            "task": test_dataset.task,
-            "cluster": test_dataset.cluster,
-            "subcluster": test_dataset.subcluster,
-        }
+    info = {
+        "task": test_dataset.task,
+        "cluster": test_dataset.cluster,
+        "subcluster": test_dataset.subcluster,
+    }
 
-        preds = [
-            reporting.Prediction(str(id), float(pred == true), n_train, info)
-            for id, pred, true in zip(test_dataset.img_ids, y_pred, y_test)
-        ]
-        report = reporting.Report(
-            f"NeWT::{test_dataset.task}", preds, preds[0].n_train, cfg
-        )
-        reports.append(report)
-
-    return reports
+    preds = [
+        reporting.Prediction(str(id), float(pred == true), n_train, info)
+        for id, pred, true in zip(test_dataset.img_ids, y_pred, y_test)
+    ]
+    report = reporting.Report(
+        task_name,
+        preds,
+        preds[0].n_train,
+        cfg,
+        task_cluster=test_dataset.cluster,
+        task_subcluster=test_dataset.subcluster,
+    )
+    return report
 
 
 @jaxtyped(typechecker=beartype.beartype)
 class ImageSample(typing.TypedDict):
+    """A dictionary representing a single image sample with its metadata.
+
+    Attributes:
+        img_id: Unique identifier for the image.
+        img: The image tensor with shape [3, width, height] (RGB channels first).
+        label: Binary class label (0 or 1) for the image.
+    """
+
     img_id: str
     img: Float[Tensor, "3 width height"]
     label: Int[Tensor, ""]
@@ -1521,19 +238,37 @@ class ImageSample(typing.TypedDict):
 
 @jaxtyped(typechecker=beartype.beartype)
 class ImageDataset(torch.utils.data.Dataset):
-    """
-    A dataset that returns ImageSample dictionaries.
-    """
+    """A dataset that returns ImageSample dictionaries."""
 
     def __init__(
-        self, root: str, img_ids: list[str], labels: list[int], transform=None
+        self,
+        root: str,
+        img_ids: Shaped[np.ndarray, " n"],
+        labels: Int[np.ndarray, " n"],
+        transform=None,
     ):
+        """Initialize the dataset with image paths and labels.
+
+        Args:
+            root: Root directory containing the images.
+            img_ids: Array of image IDs.
+            labels: Array of binary labels corresponding to the images.
+            transform: Optional transform to apply to the images.
+        """
         self.transform = transform
         self.root = root
         self.img_ids = img_ids
         self.labels = labels
 
     def __getitem__(self, i: int) -> ImageSample:
+        """Get a sample by its index.
+
+        Args:
+            i: Index of the sample to retrieve.
+
+        Returns:
+            A dictionary containing the image ID, image tensor, and label.
+        """
         img_id = self.img_ids[i]
         img = Image.open(os.path.join(self.root, f"{img_id}.jpg"))
         if self.transform is not None:
@@ -1542,11 +277,24 @@ class ImageDataset(torch.utils.data.Dataset):
         return {"img_id": img_id, "img": img, "label": label}
 
     def __len__(self) -> int:
+        """Return the number of samples in the dataset.
+
+        Returns:
+            The number of samples.
+        """
         return len(self.img_ids)
 
 
 @beartype.beartype
 class FeatureSample(typing.TypedDict):
+    """A dictionary representing a feature sample with its metadata.
+
+    Attributes:
+        img_id: Unique identifier for the image.
+        x: Feature vector extracted from the image.
+        y: Binary class label (0 or 1) for the image.
+    """
+
     img_id: str
     x: Float[Tensor, " d"]
     y: Int[Tensor, ""]
@@ -1555,6 +303,17 @@ class FeatureSample(typing.TypedDict):
 @jaxtyped(typechecker=beartype.beartype)
 @dataclasses.dataclass(frozen=True)
 class FeatureDataset:
+    """A dataset of feature vectors extracted from images.
+
+    Attributes:
+        img_ids: List of image IDs.
+        x: Tensor of feature vectors.
+        y: Tensor of binary labels.
+        task: Name of the classification task.
+        cluster: Cluster the task belongs to.
+        subcluster: Sub-cluster the task belongs to (may be None).
+    """
+
     img_ids: list[str]
     x: Float[Tensor, "n dim"]
     y: Int[Tensor, " n"]
@@ -1564,109 +323,110 @@ class FeatureDataset:
     subcluster: str | None
 
     def __getitem__(self, i: int) -> FeatureSample:
+        """Get a feature sample by its index.
+
+        Args:
+            i: Index of the sample to retrieve.
+
+        Returns:
+            A dictionary containing the image ID, feature vector, and label.
+        """
         return {"img_id": self.img_ids[i], "x": self.x[i], "y": self.y[i]}
 
 
 @jaxtyped(typechecker=beartype.beartype)
 @torch.no_grad()
-def get_all_tasks_cvml(
-    cfg: config.Experiment, backbone: cvml.VisionBackbone, rng: random.Random
-) -> collections.abc.Iterator[tuple[FeatureDataset, FeatureDataset]]:
-    """ """
-    labels_csv_name = "newt2021_labels.csv"
-    labels_csv_path = os.path.join(cfg.newt_data, labels_csv_name)
+def get_splits_cvml(
+    cfg: config.Experiment,
+    task_name: str,
+    backbone: cvml.VisionBackbone,
+    rng: np.random.Generator,
+) -> tuple[FeatureDataset, FeatureDataset]:
+    df = cfg.get_newt_df().with_row_index()
+
     images_dir_name = "newt2021_images"
     images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
-
-    if not os.path.isfile(labels_csv_path):
-        msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset? See the docstring at the top of this file for instructions. If you did download it, pass the path with '--data'; see --help for more."
-        raise RuntimeError(msg)
-
-    df = pl.read_csv(labels_csv_path).with_row_index()
 
     img_transform = backbone.make_img_transform()
     backbone = torch.compile(backbone.to(cfg.device))
 
-    for task in df.get_column("task").unique():
-        task_df = df.filter(pl.col("task") == task)
+    task_df = df.filter(pl.col("task") == task_name)
 
-        cluster = task_df.item(row=0, column="task_cluster")
-        subcluster = task_df.item(row=0, column="task_subcluster")
+    cluster = task_df.item(row=0, column="task_cluster")
+    subcluster = task_df.item(row=0, column="task_subcluster")
 
-        if not include_task(cfg.newt, task, cluster, subcluster):
-            continue
+    # Split indices based on train/test split in the dataset using native Polars methods.
+    train_rows = (
+        task_df.filter(pl.col("split") == "train")
+        .select("id", "label")
+        .to_numpy(structured=True)
+    )
+    test_rows = (
+        task_df.filter(pl.col("split") != "train")
+        .select("id", "label")
+        .to_numpy(structured=True)
+    )
 
-        # Split indices based on train/test split in the dataset using native Polars methods.
-        train_rows = (
-            task_df.filter(pl.col("split") == "train").select("id", "label").rows()
+    # Apply n_train and n_test limits if specified
+    if cfg.n_train == 0:
+        train_rows = []
+        train_ids, train_labels = (), ()
+    elif cfg.n_train > 0 and len(train_rows) > cfg.n_train:
+        train_ids, train_labels = sample(
+            rng, train_rows["id"], train_rows["label"], cfg.n_train
         )
-        test_rows = (
-            task_df.filter(pl.col("split") != "train").select("id", "label").rows()
-        )
+    else:
+        train_ids, train_labels = train_rows["id"], train_rows["label"]
 
-        # Apply n_train and n_test limits if specified
-        if cfg.n_train == 0:
-            train_rows = []
-            train_ids, train_labels = (), ()
-        elif cfg.n_train > 0 and len(train_rows) > cfg.n_train:
-            train_rows = rng.sample(train_rows, cfg.n_train)
-            train_ids, train_labels = zip(*train_rows)
-        else:
-            train_ids, train_labels = zip(*train_rows)
+    test_ids, test_labels = test_rows["id"], test_rows["label"]
 
-        if cfg.n_test > 0 and len(test_rows) > cfg.n_test:
-            test_rows = rng.sample(test_rows, cfg.n_test)
-            test_ids, test_labels = zip(*test_rows)
-        else:
-            test_ids, test_labels = zip(*test_rows)
+    dataset = ImageDataset(
+        images_dir_path,
+        np.concatenate([train_ids, test_ids]),
+        np.concatenate([train_labels, test_labels]),
+        img_transform,
+    )
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=cfg.batch_size, num_workers=cfg.n_workers, shuffle=False
+    )
 
-        dataset = ImageDataset(
-            images_dir_path,
-            train_ids + test_ids,
-            train_labels + test_labels,
-            img_transform,
-        )
-        dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=cfg.batch_size, num_workers=cfg.n_workers, shuffle=False
-        )
+    all_features, all_labels, all_ids = [], [], []
+    for batch in helpers.progress(dataloader, desc=task_name):
+        imgs = batch["img"].to(cfg.device)
 
-        all_features, all_labels, all_ids = [], [], []
-        for batch in helpers.progress(dataloader, desc=task):
-            imgs = batch["img"].to(cfg.device)
+        with torch.amp.autocast("cuda"):
+            features = backbone.img_encode(imgs).img_features
+            features = torch.nn.functional.normalize(features, dim=-1)
+            all_features.append(features.cpu())
 
-            with torch.amp.autocast("cuda"):
-                features = backbone.img_encode(imgs).img_features
-                features = torch.nn.functional.normalize(features, dim=-1)
-                all_features.append(features.cpu())
+        all_ids.extend(batch["img_id"])
+        all_labels.extend(batch["label"])
 
-            all_ids.extend(batch["img_id"])
-            all_labels.extend(batch["label"])
+    all_features = torch.cat(all_features, dim=0).cpu()
+    all_labels = torch.tensor(all_labels)
 
-        all_features = torch.cat(all_features, dim=0).cpu()
-        all_labels = torch.tensor(all_labels)
+    n_train = len(train_ids)
+    n_test = len(test_ids)
+    assert n_train + n_test == len(all_ids)
 
-        n_train = len(train_ids)
-        n_test = len(test_ids)
-        assert n_train + n_test == len(all_ids)
+    train_dataset = FeatureDataset(
+        all_ids[:n_train],
+        all_features[:n_train],
+        all_labels[:n_train],
+        task=task_name,
+        cluster=cluster,
+        subcluster=subcluster,
+    )
+    test_dataset = FeatureDataset(
+        all_ids[n_train:],
+        all_features[n_train:],
+        all_labels[n_train:],
+        task=task_name,
+        cluster=cluster,
+        subcluster=subcluster,
+    )
 
-        train_dataset = FeatureDataset(
-            all_ids[:n_train],
-            all_features[:n_train],
-            all_labels[:n_train],
-            task=task,
-            cluster=cluster,
-            subcluster=subcluster,
-        )
-        test_dataset = FeatureDataset(
-            all_ids[n_train:],
-            all_features[n_train:],
-            all_labels[n_train:],
-            task=task,
-            cluster=cluster,
-            subcluster=subcluster,
-        )
-
-        yield (train_dataset, test_dataset)
+    return train_dataset, test_dataset
 
 
 @jaxtyped(typechecker=beartype.beartype)
@@ -1678,19 +438,12 @@ def l2_normalize(
     return features / norms
 
 
-class DummyBinaryClassifier:
-    def __init__(self):
-        self.rng = random.Random()
-
-    def fit(*args, **kwargs):
-        logger.info("Doing nothing because it's a dummy classifier.")
-
-    def predict(self, data):
-        return np.array([int(self.rng.random() > 0.5) for _ in data])
-
-
 def init_svc(n_train: int):
     """Create a new, randomly initialized SVM with a random hyperparameter search over kernel, C and gamma. It uses only 16 jobs in parallel to prevent overloading the CPUs on a shared machine."""
+    if n_train < 10:
+        return sklearn.pipeline.make_pipeline(
+            sklearn.svm.SVC(kernel="linear"),
+        )
 
     return sklearn.model_selection.RandomizedSearchCV(
         sklearn.pipeline.make_pipeline(
@@ -1714,106 +467,133 @@ def init_svc(n_train: int):
 
 
 @beartype.beartype
-def benchmark_mllm(cfg: config.Experiment) -> list[reporting.Report]:
+def eval_task_mllm(cfg: config.Experiment, task_name: str) -> reporting.Report:
+    """Benchmark a multimodal language model on a task from the NeWT dataset.
+
+    This function evaluates an MLLM by prompting it with images and questions about the content, then evaluating its responses against ground truth.
+
+    Args:
+        cfg: Configuration for the experiment, including model, dataset paths, and parameters for evaluation.
+        task_name: Task name.
+
+    Returns:
+        A Report object containing evaluation results for the task.
+    """
     rng = random.Random(cfg.seed)
 
-    reports = []
     with asyncio.Runner() as loop:
         limiter = mllms.RateLimiter(cfg.parallel)
         semaphore = asyncio.Semaphore(cfg.parallel)
 
-        for train_dataset, test_dataset in get_all_tasks_mllm(cfg):
-            # We load all the training samples into memory right away because they will be re-used over and over again.
-            # Test samples are loaded one by one on demand.
-            train_indices = list(range(len(train_dataset)))
-            i_train = rng.sample(train_indices, k=min(cfg.n_train, len(train_indices)))
+        train_dataset, test_dataset = get_splits_mllm(cfg, task_name)
 
-            train_examples = [train_dataset[i].to_example(rng) for i in i_train]
-            if train_examples:
-                logger.info("Loaded %d training examples.", len(train_examples))
+        # We load all the training samples into memory right away because they will be re-used over and over again.
+        # Test samples are loaded one by one on demand.
+        i_train = list(range(len(train_dataset)))
+        if cfg.n_train >= 0:
+            i_train = rng.sample(i_train, k=min(cfg.n_train, len(i_train)))
+        else:
+            i_train = i_train
 
-            @beartype.beartype
-            async def run_one(i: int) -> reporting.Prediction:
-                async with semaphore:
-                    example = test_dataset[i]
+        train_examples = [train_dataset[i].to_example(rng) for i in i_train]
+        logger.info(
+            "Loaded %d/%d training examples (%s).",
+            len(train_examples),
+            len(train_dataset),
+            train_dataset.task,
+        )
 
-                    # Set up prompt.
-                    n = 0
-                    fewshot = []
-                    while (
-                        mllms.fits(
-                            cfg, fewshot, example.img_b64, example.make_user(rng)
-                        )
-                    ) and (cfg.n_train < 0 or n < cfg.n_train):
-                        # Add another example.
-                        n += 1
-                        fewshot = train_examples[:n]
+        @beartype.beartype
+        async def run_one(i: int) -> reporting.Prediction:
+            async with semaphore:
+                example = test_dataset[i]
 
-                    # Only shuffle once.
-                    rng.shuffle(fewshot)
+                # Set up prompt.
+                n = 0
+                fewshot = []
+                while (
+                    mllms.fits(cfg, fewshot, example.img_b64, example.make_user(rng))
+                ) and (cfg.n_train < 0 or n < cfg.n_train):
+                    # Add another example.
+                    n += 1
+                    fewshot = train_examples[:n]
 
-                    await limiter.acquire()
-                    assistant = await mllms.send(
-                        cfg, fewshot, example.img_b64, example.make_user(rng)
-                    )
-                    pred_y, parsed = example.parse_assistant(assistant)
+                # Only shuffle once.
+                rng.shuffle(fewshot)
 
-                    return reporting.Prediction(
-                        example.img_id,
-                        float(pred_y == example.label),
-                        len(fewshot),
-                        info={
-                            "task": test_dataset.task,
-                            "cluster": test_dataset.cluster,
-                            "subcluster": test_dataset.subcluster,
-                            "parsed": parsed,
-                        },
-                    )
+                await limiter.acquire()
+                assistant = await mllms.send(
+                    cfg, fewshot, example.img_b64, example.make_user(rng)
+                )
+                pred_y, parsed = example.parse_assistant(assistant)
 
-            @beartype.beartype
-            async def run_all() -> list[reporting.Prediction]:
-                if cfg.debug:
-                    logger.info(
-                        "Using the first 10 examples out of %d.", len(test_dataset)
-                    )
-                    test_i = list(range(10))
-                elif cfg.n_test >= 0 and cfg.n_test < len(test_dataset):
-                    logger.info(
-                        "Using %d random examples out of %d.",
-                        cfg.n_test,
-                        len(test_dataset),
-                    )
-                    test_i = rng.sample(range(len(test_dataset)), k=cfg.n_test)
-                else:
-                    logger.info(
-                        "Using entire test set (%d examples).", len(test_dataset)
-                    )
-                    test_i = list(range(len(test_dataset)))
+                return reporting.Prediction(
+                    example.img_id,
+                    float(pred_y == example.label),
+                    len(fewshot),
+                    info={
+                        "task": test_dataset.task,
+                        "cluster": test_dataset.cluster,
+                        "subcluster": test_dataset.subcluster,
+                        "parsed": parsed,
+                    },
+                )
 
-                jobs = [asyncio.create_task(run_one(i)) for i in test_i]
-                preds = []
-                for job in helpers.progress(jobs, desc=train_dataset.task):
-                    pred: reporting.Prediction = await job
-                    preds.append(pred)
-                return preds
+        @beartype.beartype
+        async def run_all() -> list[reporting.Prediction]:
+            if cfg.debug:
+                logger.info(
+                    "Using the first 10/%d examples for testing (%s).",
+                    len(test_dataset),
+                    test_dataset.task,
+                )
+                test_i = list(range(10))
+            elif cfg.n_test >= 0 and cfg.n_test < len(test_dataset):
+                logger.info(
+                    "Using %d/%d random examples for testing (%s).",
+                    cfg.n_test,
+                    len(test_dataset),
+                    test_dataset.task,
+                )
+                test_i = rng.sample(range(len(test_dataset)), k=cfg.n_test)
+            else:
+                logger.info(
+                    "Using all (%d) examples for testing (%s).",
+                    len(test_dataset),
+                    test_dataset.task,
+                )
+                test_i = list(range(len(test_dataset)))
 
-            preds = loop.run(run_all())
-            report = reporting.Report(
-                "newt",
-                preds,
-                preds[0].n_train,
-                cfg,
-                task_cluster=test_dataset.cluster,
-                task_subcluster=test_dataset.subcluster,
-            )
-            reports.append(report)
+            jobs = [asyncio.create_task(run_one(i)) for i in test_i]
+            preds = []
+            for job in jobs:
+                pred: reporting.Prediction = await job
+                preds.append(pred)
+            return preds
 
-    return reports
+        preds = loop.run(run_all())
+        return reporting.Report(
+            task_name,
+            preds,
+            preds[0].n_train,
+            cfg,
+            task_cluster=test_dataset.cluster,
+            task_subcluster=test_dataset.subcluster,
+        )
 
 
 @beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class SampleMllm:
+    """A sample for multimodal language model evaluation.
+
+    Attributes:
+        img_id: Unique identifier for the image.
+        img_b64: Base64-encoded image data.
+        label: Binary class label (0 or 1).
+        classnames: Tuple of class names corresponding to labels 0 and 1.
+    """
+
     img_id: str
     img_b64: str
     label: int
@@ -1823,9 +603,22 @@ class SampleMllm:
 
     @property
     def classname(self) -> str:
+        """Get the class name corresponding to this sample's label.
+
+        Returns:
+            The class name as a string.
+        """
         return self.classnames[self.label]
 
     def make_user(self, rng: random.Random) -> str:
+        """Create a user prompt for the MLLM.
+
+        Args:
+            rng: Random number generator for randomizing prompt order.
+
+        Returns:
+            A string prompt asking the model to classify the image.
+        """
         a, b = self.classnames
         if rng.random() > 0.5:
             a, b = b, a
@@ -1833,12 +626,15 @@ class SampleMllm:
 
     @property
     def assistant(self) -> str:
+        """Get the expected assistant response for this sample.
+
+        Returns:
+            A string containing the expected response with the correct class name.
+        """
         return f"**{self.classname}**"
 
     def parse_assistant(self, assistant: str) -> tuple[int, bool]:
-        """
-        Returns a label, parsed to an integer. Also returns a boolean indicating whether parsing was successful.
-        """
+        """Returns a label, parsed to an integer. Also returns a boolean indicating whether parsing was successful."""
         pattern = re.compile(r"\*\*(.*)\*\*")
         match = pattern.match(assistant)
         if match:
@@ -1862,6 +658,14 @@ class SampleMllm:
         return (0, False)
 
     def to_example(self, rng: random.Random) -> mllms.Example:
+        """Convert this sample to an MLLM example.
+
+        Args:
+            rng: Random number generator for randomizing prompt order.
+
+        Returns:
+            An Example object containing the image, user prompt, and expected response.
+        """
         return mllms.Example(
             img_b64=self.img_b64,
             user=self.make_user(rng),
@@ -1871,8 +675,8 @@ class SampleMllm:
 
 @jaxtyped(typechecker=beartype.beartype)
 class DatasetMllm(torch.utils.data.Dataset):
-    """
-    A dataset that returns SampleMllms for a specific task.
+    """A dataset that returns SampleMllms for a specific task.
+
     This dataset can be instantiated as either a training or test dataset.
 
     This dataset presents a clean 0-n indexing interface while internally
@@ -1889,6 +693,17 @@ class DatasetMllm(torch.utils.data.Dataset):
         df: pl.DataFrame,
         is_train: bool,
     ):
+        """Initialize the dataset with task information and indices.
+
+        Args:
+            task: Name of the classification task.
+            cluster: Cluster the task belongs to.
+            subcluster: Sub-cluster the task belongs to (may be None).
+            indices: Array of indices into the full dataset.
+            root: Root directory containing the images.
+            df: DataFrame containing metadata for all samples.
+            is_train: Whether this is a training dataset.
+        """
         self.task = task
         self.cluster = cluster
         self.subcluster = subcluster
@@ -1906,13 +721,27 @@ class DatasetMllm(torch.utils.data.Dataset):
         self.task_df = self.df.filter(pl.col("task") == self.task)
 
     def __repr__(self) -> str:
+        """Get a string representation of the dataset.
+
+        Returns:
+            A string describing the dataset.
+        """
         split = "train" if self.is_train else "test"
         return f"DatasetMllm(task={self.task}, cluster={self.cluster}, split={split}, n_samples={len(self.indices)})"
 
     def __getitem__(self, i: int) -> SampleMllm:
-        """
-        Get a sample by its index in this dataset (0 to len-1).
+        """Get a sample by its index in this dataset (0 to len-1).
+
         Internally maps to the correct index in the full dataset.
+
+        Args:
+            i: Index of the sample to retrieve.
+
+        Returns:
+            A SampleMllm object.
+
+        Raises:
+            IndexError: If the index is out of bounds.
         """
         if i >= len(self.indices):
             raise IndexError(
@@ -1937,65 +766,61 @@ class DatasetMllm(torch.utils.data.Dataset):
         )
 
     def __len__(self) -> int:
-        """Return the number of samples in this dataset"""
+        """Return the number of samples in this dataset."""
         return len(self.indices)
 
 
 @jaxtyped(typechecker=beartype.beartype)
-def get_all_tasks_mllm(
-    cfg: config.Experiment,
-) -> collections.abc.Iterator[tuple[DatasetMllm, DatasetMllm]]:
+def get_splits_mllm(
+    cfg: config.Experiment, task_name: str
+) -> tuple[DatasetMllm, DatasetMllm]:
+    """Gets the train/test splits for MLLM benchmarking.
+
+    Args:
+        cfg: Experiment configuration.
+        task_name: Specific NeWT task.
+
+    Returns:
+        Iterator of (train_dataset, test_dataset) pairs.
+
+    Raises:
+        RuntimeError: If the NeWT dataset is not found at the specified path.
     """
-    Get all tasks as pairs of (train_dataset, test_dataset).
-    Each dataset is a DatasetMllm instance.
-    """
-    labels_csv_name = "newt2021_labels.csv"
-    labels_csv_path = os.path.join(cfg.newt_data, labels_csv_name)
+    df = cfg.get_newt_df().with_row_index()
+
     images_dir_name = "newt2021_images"
     images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
 
-    if not os.path.isfile(labels_csv_path):
-        msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset? See the docstring at the top of this file for instructions. If you did download it, pass the path with '--data'; see --help for more."
-        raise RuntimeError(msg)
+    task_df = df.filter(pl.col("task") == task_name)
 
-    df = pl.read_csv(labels_csv_path).with_row_index()
+    # Get the cluster and sub-cluster for this task
+    cluster = task_df.item(row=0, column="task_cluster")
+    subcluster = task_df.item(row=0, column="task_subcluster")
 
-    for task_name in df.get_column("task").unique():
-        task_df = df.filter(pl.col("task") == task_name)
+    task_idx = task_df.get_column("index").to_numpy()
+    is_train = task_df.select(pl.col("split") == "train").get_column("split").to_numpy()
 
-        # Get the cluster and sub-cluster for this task
-        cluster = task_df.item(row=0, column="task_cluster")
-        subcluster = task_df.item(row=0, column="task_subcluster")
+    train_dataset = DatasetMllm(
+        task=task_name,
+        cluster=cluster,
+        subcluster=subcluster,
+        indices=task_idx[is_train],
+        root=images_dir_path,
+        df=df,
+        is_train=True,
+    )
 
-        if not include_task(cfg.newt, task_name, cluster, subcluster):
-            continue
+    test_dataset = DatasetMllm(
+        task=task_name,
+        cluster=cluster,
+        subcluster=subcluster,
+        indices=task_idx[~is_train],
+        root=images_dir_path,
+        df=df,
+        is_train=False,
+    )
 
-        task_idx = task_df.get_column("index").to_numpy()
-        is_train = (
-            task_df.select(pl.col("split") == "train").get_column("split").to_numpy()
-        )
-
-        train_dataset = DatasetMllm(
-            task=task_name,
-            cluster=cluster,
-            subcluster=subcluster,
-            indices=task_idx[is_train],
-            root=images_dir_path,
-            df=df,
-            is_train=True,
-        )
-
-        test_dataset = DatasetMllm(
-            task=task_name,
-            cluster=cluster,
-            subcluster=subcluster,
-            indices=task_idx[~is_train],
-            root=images_dir_path,
-            df=df,
-            is_train=False,
-        )
-
-        yield (train_dataset, test_dataset)
+    return train_dataset, test_dataset
 
 
 text_label_to_classname = {
@@ -2675,12 +1500,23 @@ text_label_to_classname = {
 ##########
 
 
+def get_task_names(cfg: config.Experiment) -> list[str]:
+    df = cfg.get_newt_df()
+    filtered_tasks = []
+    for task in df.get_column("task").unique().to_list():
+        task_df = df.filter(pl.col("task") == task)
+        cluster = task_df.item(row=0, column="task_cluster")
+        subcluster = task_df.item(row=0, column="task_subcluster")
+        if _include_task(cfg.newt, task, cluster, subcluster):
+            filtered_tasks.append(task)
+    return filtered_tasks
+
+
 @beartype.beartype
-def include_task(
+def _include_task(
     cfg: config.Newt, task: str, cluster: str, subcluster: str | None
 ) -> bool:
-    """
-    Determine if a task should be included based on the configuration.
+    """Determine if a task should be included based on the configuration.
 
     Args:
         cfg: The newt configuration
@@ -2717,23 +1553,1512 @@ def include_task(
             return True
 
     # Check subclusters
-    if cfg.include_subclusters and subcluster:
+    if cfg.include_subclusters:
         has_inclusion_filter = True
-        if subcluster in cfg.include_subclusters:
+        if subcluster and subcluster in cfg.include_subclusters:
             return True
 
     # If no inclusion filters were specified, include by default
     # Otherwise, exclude because it didn't match any inclusion filter
     return not has_inclusion_filter
 
+
+@jaxtyped(typechecker=beartype.beartype)
+def sample(
+    rng: np.random.Generator,
+    img_ids: Shaped[np.ndarray, " m"],
+    labels: Int[np.ndarray, " m"],
+    n: int,
+) -> tuple[Shaped[np.ndarray, " n"], Int[np.ndarray, " n"]]:
+    """Sample a balanced subset of data points.
+
+    Args:
+        rng: Random number generator.
+        img_ids: Array of image IDs.
+        labels: Array of binary labels.
+        n: Number of samples to return.
+
+    Returns:
+        A tuple of (sampled_img_ids, sampled_labels).
+
+    Raises:
+        AssertionError: If labels are not binary (0 or 1).
+    """
+    assert max(labels) == 1
+    assert min(labels) == 0
+
+    n0 = n // 2
+    n1 = n - n0
+
+    # Get indices for each class
+    i0 = np.where(labels == 0)[0]
+    i1 = np.where(labels == 1)[0]
+
+    # Randomly select the required number of samples from each class
+    i0 = rng.choice(i0, size=n0, replace=False)
+    i1 = rng.choice(i1, size=n1, replace=False)
+
+    # Combine the indices
+    i = np.concatenate([i0, i1])
+
+    # Shuffle the combined indices to avoid having all class 0 samples followed by all class 1 samples
+    np.random.shuffle(i)
+
+    # Return the balanced subset
+    return img_ids[i], labels[i]
+
+```
+
+# small_data_metrics/mllms.py
+
+```python
+"""Multimodal LLM interface for interacting with vision-language models.
+
+This module provides utilities for prompting, rate limiting, and managing
+multimodal language models (MLLMs) that can process both images and text.
+"""
+
+import asyncio
+import collections
+import dataclasses
+import logging
+import time
+import typing
+
+import beartype
+import litellm
+
+from . import config
+
+logger = logging.getLogger("mllms")
+
+# Disable logging for packages that yap a lot.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+
+
+###################
+# Data Structures #
+###################
+
+
+@beartype.beartype
+@dataclasses.dataclass(frozen=True)
+class Example:
+    """A single example for few-shot learning with multimodal LLMs.
+
+    This class represents a complete example interaction with an MLLM,
+    containing an image, a user prompt, and the expected assistant response.
+    Used for few-shot prompting to demonstrate the expected behavior.
+
+    Attributes:
+        img_b64: Base64-encoded image data with data URI prefix.
+        user: The user's text prompt or question about the image.
+        assistant: The expected/reference response from the assistant.
+    """
+
+    img_b64: str
+    user: str
+    assistant: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Mllm:
+    """Configuration for a multimodal language model.
+
+    Attributes:
+        name: Model identifier/checkpoint name.
+        max_tokens: Maximum context length supported by the model.
+        usd_per_m_input: Cost in USD per million input tokens.
+        usd_per_m_output: Cost in USD per million output tokens.
+        quantizations: List of supported quantization formats.
+    """
+
+    name: str
+    max_tokens: int
+    usd_per_m_input: float
+    usd_per_m_output: float
+    quantizations: list[str] = dataclasses.field(default_factory=list)
+
+
+#############
+# Functions #
+#############
+
+
+@beartype.beartype
+def fits(
+    cfg: config.Experiment, examples: list[Example], img_b64: str, user: str
+) -> bool:
+    """Check if a prompt will fit within the model's context window.
+
+    Args:
+        cfg: Experiment configuration.
+        examples: Few-shot examples to include in the prompt.
+        img_b64: Base64-encoded image data.
+        user: User prompt text.
+
+    Returns:
+        True if the prompt fits within the model's context window, False otherwise.
+    """
+    mllm = load_mllm(cfg.model)
+    messages = make_prompt(cfg, examples, img_b64, user)
+    n_tokens = litellm.token_counter(model=cfg.model.ckpt, messages=messages)
+    return n_tokens <= mllm.max_tokens
+
+
+@beartype.beartype
+async def send(
+    cfg: config.Experiment,
+    examples: list[Example],
+    img_b64: str,
+    user: str,
+    *,
+    max_retries: int = 5,
+    system: str = "",
+) -> str:
+    """Send a message to the LLM and get the response.
+
+    Args:
+        cfg: Experiment configuration with model and parameters.
+        examples: Few-shot examples to include in the prompt.
+        img_b64: Base64-encoded image data with data URI prefix.
+        user: The user request or prompt text.
+        max_retries: Maximum number of retry attempts for failed API calls.
+        system: Optional system message to include in the prompt.
+
+    Returns:
+        The LLM's response as a string.
+
+    Raises:
+        ValueError: If required settings are missing
+        RuntimeError: If LLM call fails
+    """
+    messages = make_prompt(cfg, examples, img_b64, user)
+    mllm = load_mllm(cfg.model)
+
+    # Make LLM call with retries
+    last_err = None
+
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                # Exponential backoff: 2, 4, 8, 16, ... seconds
+                wait_time_s = 2**attempt
+                logger.warning(
+                    "LLM call failed (attempt %d/%d): %s. Retrying in %d seconds.",
+                    attempt,
+                    max_retries,
+                    last_err,
+                    wait_time_s,
+                )
+                await asyncio.sleep(wait_time_s)
+
+            # Make LLM call
+            response = await litellm.acompletion(
+                model=cfg.model.org + "/" + cfg.model.ckpt,
+                messages=messages,
+                temperature=cfg.temp,
+                provider={"quantizations": mllm.quantizations},
+            )
+        except RuntimeError as err:
+            last_err = err
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"Max retries ({max_retries}) exceeded: {err}")
+
+        except litellm.APIConnectionError as err:
+            should_retry = litellm._should_retry(err.status_code)
+            if should_retry:
+                last_err = err
+                if attempt == max_retries - 1:
+                    raise RuntimeError(f"Max retries ({max_retries}) exceeded: {err}")
+                continue
+            raise RuntimeError(f"Non-retryable API connection error: {err}") from err
+
+        except (litellm.APIError, litellm.BadRequestError) as err:
+            # For some godforsaken reason, litellm does not parse the rate-limit error response from OpenRouter.
+            # It just raises a litellm.APIError, which happens when it gets a bad response.
+            # So in the interest of not failing, if err.llm_provider is 'openrouter' we assume it's a rate limit, and try again.
+            if getattr(err, "llm_provider", None) == "openrouter":
+                # Treat as rate limit for OpenRouter
+                last_err = err
+                if attempt == max_retries - 1:
+                    raise RuntimeError(f"Max retries ({max_retries}) exceeded: {err}")
+                continue
+            # For other providers, raise the error
+            raise RuntimeError(f"API error: {err}") from err
+
+        # Extract response and update history
+        response = response.choices[0].message.content
+        if response is None:
+            return ""
+        return response
+
+
+#############
+# PROMPTING #
+#############
+
+
+@beartype.beartype
+def make_prompt(
+    cfg: config.Experiment,
+    examples: list[Example],
+    img_b64: str,
+    user: str,
+    *,
+    system: str = "",
+) -> list[object]:
+    """Create a prompt for the LLM based on the experiment configuration.
+
+    Args:
+        cfg: Experiment configuration with prompting style.
+        examples: Few-shot examples to include in the prompt.
+        img_b64: Base64-encoded image data.
+        user: User prompt text.
+        system: Optional system message to include.
+
+    Returns:
+        List of message objects formatted for the LLM API.
+
+    Raises:
+        AssertionError: If prompting style is not recognized.
+    """
+    if cfg.prompting == "single":
+        return _make_single_turn_prompt(examples, img_b64, user, system=system)
+    elif cfg.prompting == "multi":
+        return _make_multi_turn_prompt(examples, img_b64, user, system=system)
+    else:
+        typing.assert_never(cfg.prompting)
+
+
+@beartype.beartype
+def _make_single_turn_prompt(
+    examples: list[Example],
+    img_b64: str,
+    user: str,
+    *,
+    system: str = "",
+) -> list[object]:
+    messages = []
+
+    if system:
+        messages.append({"role": "system", "content": system})
+
+    content = []
+    for example in examples:
+        content.append({"type": "image_url", "image_url": {"url": example.img_b64}})
+        content.append({"type": "text", "text": f"{example.user}\n{example.assistant}"})
+
+    content.append({"type": "image_url", "image_url": {"url": img_b64}})
+    content.append({"type": "text", "text": user})
+
+    messages.append({"role": "user", "content": content})
+
+    return messages
+
+
+@beartype.beartype
+def _make_multi_turn_prompt(
+    examples: list[Example],
+    img_b64: str,
+    user: str,
+    *,
+    system: str = "",
+) -> list[object]:
+    # Format messages for chat completion
+    messages = []
+
+    if system:
+        messages.append({"role": "system", "content": system})
+
+    for example in examples:
+        messages.append({
+            "role": "user",
+            "content": [
+                {"type": "image_url", "image_url": {"url": example.img_b64}},
+                {"type": "text", "text": example.user},
+            ],
+        })
+        messages.append({"role": "assistant", "content": example.assistant})
+
+    # Add current message
+    messages.append({
+        "role": "user",
+        "content": [
+            {"type": "image_url", "image_url": {"url": img_b64}},
+            {"type": "text", "text": user},
+        ],
+    })
+    return messages
+
+
+###############
+# PARALLELISM #
+###############
+
+
+@beartype.beartype
+class RateLimiter:
+    """Rate limiter for API calls to prevent exceeding rate limits.
+
+    Implements a sliding window rate limiting algorithm to control
+    the frequency of API calls.
+    """
+
+    def __init__(self, max_rate: int, window_s: float = 1.0):
+        """Initialize the rate limiter.
+
+        Args:
+            max_rate: Maximum number of requests allowed in the time window.
+            window_s: Time window in seconds.
+        """
+        self.max_rate = max_rate
+        self.window_s = window_s
+        self.timestamps = collections.deque()
+
+    async def acquire(self):
+        """Acquire permission to make an API call.
+
+        Blocks until a request can be made without exceeding the rate limit.
+        """
+        now = time.monotonic()
+
+        # Remove timestamps older than our window
+        while self.timestamps and now - self.timestamps[0] > self.window_s:
+            self.timestamps.popleft()
+
+        # If we're at max capacity, wait until oldest timestamp expires
+        if len(self.timestamps) >= self.max_rate:
+            wait_time = self.timestamps[0] + self.window_s - now
+            if wait_time > 0:
+                if wait_time > 1.0:
+                    logger.info("Sleeping for %.2f seconds.", wait_time)
+                await asyncio.sleep(wait_time)
+
+        # Add current timestamp
+        self.timestamps.append(time.monotonic())
+
+
+############
+# REGISTRY #
+############
+
+
+_global_mllm_registry: dict[tuple[str, str], Mllm] = {}
+
+
+@beartype.beartype
+def load_mllm(cfg: config.Model) -> Mllm:
+    """Load a multimodal LLM configuration."""
+    key = (cfg.org, cfg.ckpt)
+    if key not in _global_mllm_registry:
+        raise ValueError(f"Model '{key}' not found.")
+
+    return _global_mllm_registry[key]
+
+
+@beartype.beartype
+def register_mllm(model_org: str, mllm: Mllm):
+    """Register a new multimodal LLM configuration."""
+    key = (model_org, mllm.name)
+    if key in _global_mllm_registry:
+        logger.warning("Overwriting key '%s' in registry.", key)
+    _global_mllm_registry[key] = mllm
+
+
+@beartype.beartype
+def list_mllms() -> list[tuple[str, str]]:
+    """List all registered multimodal LLM models."""
+    return list(_global_mllm_registry.keys())
+
+
+###################
+# Built-in models #
+###################
+
+# Open-Source
+
+register_mllm(
+    "openrouter",
+    Mllm("meta-llama/llama-3.2-3b-instruct", 131_000, 0.015, 0.025, ["fp32", "bf16"]),
+)
+register_mllm(
+    "openrouter",
+    Mllm(
+        "meta-llama/llama-3.2-11b-vision-instruct",
+        16_384,
+        0.055,
+        0.055,
+        ["fp32", "bf16"],
+    ),
+)
+register_mllm(
+    "openrouter",
+    Mllm("qwen/qwen-2-vl-7b-instruct", 4096, 0.1, 0.1, ["fp32", "bf16"]),
+)
+register_mllm(
+    "openrouter",
+    Mllm("qwen/qwen2.5-vl-72b-instruct", 32_000, 0.7, 0.7, ["fp32", "bf16"]),
+)
+
+# Proprietary
+
+register_mllm(
+    "openrouter",
+    Mllm("google/gemini-flash-1.5-8b", 1_000_000, 0.0375, 0.15),
+)
+register_mllm(
+    "openrouter",
+    Mllm("google/gemini-2.0-flash-lite-001", 1_000_000, 0.075, 0.3),
+)
+register_mllm(
+    "openrouter",
+    Mllm("google/gemini-2.0-flash-001", 1_000_000, 0.1, 0.4),
+)
+register_mllm(
+    "openrouter",
+    Mllm("openai/gpt-4o-mini-2024-07-18", 128_000, 0.15, 0.6),
+)
+register_mllm(
+    "openrouter",
+    Mllm("openai/gpt-4o-2024-11-20", 128_000, 2.5, 10.0),
+)
+
+```
+
+# small_data_metrics/download.py
+
+```python
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "requests",
+#     "tqdm",
+#     "tyro",
+# ]
+# ///
+"""A script to download the NeWT dataset.
+
+Run with:
+
+1. `python biobench/newt/download.py --help` if `biobench/` is in your $PWD.
+2. `python -m biobench.newt.download --help` if you have installed `biobench` as a package.
+"""
+
+import dataclasses
+import os.path
+import tarfile
+
+import requests
+import tqdm
+import tyro
+
+images_url = (
+    "https://ml-inat-competition-datasets.s3.amazonaws.com/newt/newt2021_images.tar.gz"
+)
+labels_url = "https://ml-inat-competition-datasets.s3.amazonaws.com/newt/newt2021_labels.csv.tar.gz"
+
+
+@dataclasses.dataclass(frozen=True)
+class Args:
+    """Configure download options."""
+
+    dir: str = "."
+    """Where to save data."""
+
+    chunk_size_kb: int = 1
+    """How many KB to download at a time before writing to file."""
+
+    images: bool = True
+    """Whether to download images [4.1GB]."""
+    labels: bool = True
+    """Whether to download labels."""
+
+
+def main(args: Args):
+    """Download NeWT."""
+    os.makedirs(args.dir, exist_ok=True)
+    chunk_size = int(args.chunk_size_kb * 1024)
+    labels_tar_path = os.path.join(args.dir, "labels.tar")
+    images_tar_path = os.path.join(args.dir, "images.tar")
+    labels_csv_name = "newt2021_labels.csv"
+    labels_csv_path = os.path.join(args.dir, labels_csv_name)
+    images_dir_name = "newt2021_images"
+    images_dir_path = os.path.join(args.dir, images_dir_name)
+
+    if args.labels:
+        # Download labels
+        r = requests.get(labels_url, stream=True)
+        r.raise_for_status()
+
+        with open(labels_tar_path, "wb") as fd:
+            for chunk in r.iter_content(chunk_size=chunk_size):
+                fd.write(chunk)
+        print(f"Downloaded labels: {labels_tar_path}.")
+
+    if args.images:
+        # Download images.
+        r = requests.get(images_url, stream=True)
+        r.raise_for_status()
+
+        n_bytes = int(r.headers["content-length"])
+
+        with open(images_tar_path, "wb") as fd:
+            for chunk in tqdm.tqdm(
+                r.iter_content(chunk_size=chunk_size),
+                total=n_bytes / chunk_size,
+                unit="b",
+                unit_scale=1,
+                unit_divisor=1024,
+                desc="Downloading images",
+            ):
+                fd.write(chunk)
+        print(f"Downloaded images: {images_tar_path}.")
+
+    with tarfile.open(labels_tar_path, "r") as tar:
+        tar.extract(labels_csv_name, path=args.dir, filter="data")
+    print(f"Extracted labels: {labels_csv_path}.")
+
+    with open(labels_csv_path) as fd:
+        n_images = len(fd.read().split("\n")) - 1
+
+    with tarfile.open(images_tar_path, "r") as tar:
+        for member in tqdm.tqdm(tar, desc="Extracting images", total=n_images):
+            tar.extract(member, path=args.dir, filter="data")
+    print(f"Extracted images: {images_dir_path}.")
+
+
+if __name__ == "__main__":
+    main(tyro.cli(Args))
+
+```
+
+# small_data_metrics/test_newt.py
+
+```python
+"""Tests for the newt module in small_data_metrics package."""
+
+from small_data_metrics import config, newt
+
+
+def test_include_task_no_filters():
+    """Test include_task with no filters (should include all tasks)."""
+    cfg = config.Newt()
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+
+
+def test_include_task_exclude_tasks():
+    """Test include_task with exclude_tasks filter."""
+    cfg = config.Newt(exclude_tasks=["task1", "task2"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
+    assert newt.include_task(cfg, "task3", "cluster1", "subcluster1") is True
+
+
+def test_include_task_exclude_clusters():
+    """Test include_task with exclude_clusters filter."""
+    cfg = config.Newt(exclude_clusters=["cluster1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
+    assert newt.include_task(cfg, "task1", "cluster2", "subcluster1") is True
+
+
+def test_include_task_exclude_subclusters():
+    """Test include_task with exclude_subclusters filter."""
+    cfg = config.Newt(exclude_subclusters=["subcluster1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster2") is True
+    assert newt.include_task(cfg, "task1", "cluster1", None) is True
+
+
+def test_include_task_specific_tasks():
+    """Test include_task with specific tasks inclusion."""
+    cfg = config.Newt(tasks=["task1", "task2"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+    assert newt.include_task(cfg, "task3", "cluster1", "subcluster1") is False
+
+
+def test_include_task_include_clusters():
+    """Test include_task with include_clusters filter."""
+    cfg = config.Newt(include_clusters=["cluster1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+    assert newt.include_task(cfg, "task1", "cluster2", "subcluster1") is False
+
+
+def test_include_task_include_subclusters():
+    """Test include_task with include_subclusters filter."""
+    cfg = config.Newt(include_subclusters=["subcluster1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster2") is False
+    # When subcluster is None, it can't match any include_subclusters filter
+    # But the current implementation returns True in this case
+    assert newt.include_task(cfg, "task1", "cluster1", None) is False
+
+
+def test_include_task_multiple_inclusion_filters():
+    """Test include_task with multiple inclusion filters."""
+    cfg = config.Newt(
+        tasks=["task2"],
+        include_clusters=["cluster1"],
+        include_subclusters=["subcluster2"],
+    )
+    # Matches cluster
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+    # Matches subcluster
+    assert newt.include_task(cfg, "task1", "cluster2", "subcluster2") is True
+    # Matches task
+    assert newt.include_task(cfg, "task2", "cluster2", "subcluster3") is True
+    # Matches none
+    assert newt.include_task(cfg, "task3", "cluster3", "subcluster3") is False
+
+
+def test_include_task_inclusion_exclusion_precedence():
+    """Test that exclusion takes precedence over inclusion."""
+    cfg = config.Newt(tasks=["task1"], exclude_tasks=["task1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
+
+```
+
+# small_data_metrics/third_party_models.py
+
+```python
+import logging
+import os
+
+import beartype
+from jaxtyping import Float, jaxtyped
+from torch import Tensor
+
+from . import cvml
+
+logger = logging.getLogger("third_party")
+
+
+@beartype.beartype
+def get_cache_dir() -> str:
+    """Get the cache directory for downloading models.
+
+    Checks environment variables in the following order:
+    1. SMALL_DATA_METRICS_CACHE - Custom cache for this project
+    2. HF_HOME - Hugging Face's home directory
+    3. HF_HUB_CACHE - Hugging Face's hub cache
+
+    Returns:
+        The path to the cache directory, or "." (current directory) if none found.
+    """
+    cache_dir = ""
+    for var in ("SMALL_DATA_METRICS_CACHE", "HF_HOME", "HF_HUB_CACHE"):
+        cache_dir = cache_dir or os.environ.get(var, "")
+    return cache_dir or "."
+
+
+@beartype.beartype
+def get_ssl() -> bool:
+    """Checks whether BIOBENCH_DISABLE_SSL is present in the environment.
+
+    We use environment variables rather than a boolean argument because
+
+    1. This is only needed on some systems, like OSC.
+    2. Every benchmark needs it in exactly the same way, so it would show up in every benchmark script as more "noise".
+    3. It is not manipulated throughout the running of the program. It's a global variable that's set at the start of the jobs.
+
+    But in general, we should not use environment variables to manage program state.
+
+    Returns:
+        A boolean that's true if we should use SSL and false if not.
+    """
+    disable = os.environ.get("BIOBENCH_DISABLE_SSL", None)
+    return not disable
+
+
+@jaxtyped(typechecker=beartype.beartype)
+class OpenClip(cvml.VisionBackbone):
+    """Loads checkpoints from [open_clip](https://github.com/mlfoundations/open_clip), an open-source reproduction of the original [CLIP](https://arxiv.org/abs/2103.00020) paper.
+
+    Checkpoints are in the format `<ARCH>/<CKPT>`.
+    Look at the [results file](https://github.com/mlfoundations/open_clip/blob/main/docs/openclip_results.csv) for the pretrained models.
+    For example, to load a ViT-B/16 train on Apple's Data Filtering Networks dataset, you would use `ViT-B-16/dfn2b`.
+    """
+
+    def __init__(self, ckpt: str, **kwargs):
+        super().__init__()
+        import open_clip
+
+        if not get_ssl():
+            logger.warning("Ignoring SSL certs. Try not to do this!")
+            # https://github.com/openai/whisper/discussions/734#discussioncomment-4491761
+            # Ideally we don't have to disable SSL but we are only downloading weights.
+            import ssl
+
+            ssl._create_default_https_context = ssl._create_unverified_context
+
+        if ckpt.startswith("hf-hub:"):
+            clip, self.img_transform = open_clip.create_model_from_pretrained(ckpt)
+        else:
+            arch, ckpt = ckpt.split("/")
+            clip, self.img_transform = open_clip.create_model_from_pretrained(
+                arch, pretrained=ckpt, cache_dir=get_cache_dir()
+            )
+
+        self.model = clip.visual
+        self.model.output_tokens = True  # type: ignore
+
+    def make_img_transform(self):
+        return self.img_transform
+
+    def img_encode(
+        self, batch: Float[Tensor, "batch 3 width height"]
+    ) -> cvml.EncodedImgBatch:
+        result = self.model(batch)
+        # Sometimes the model does not return patch features if it has none.
+        if isinstance(result, tuple):
+            img, patches = result
+            return cvml.EncodedImgBatch(img, patches)
+        else:
+            return cvml.EncodedImgBatch(result, None)
+
+
+@jaxtyped(typechecker=beartype.beartype)
+class TimmVit(cvml.VisionBackbone):
+    """ """
+
+    # TODO: docs + describe the ckpt format.
+    def __init__(self, ckpt: str, **kwargs):
+        super().__init__()
+        import timm
+
+        err_msg = "You are trying to load a non-ViT checkpoint; the `img_encode()` method assumes `model.forward_features()` will return features with shape (batch, n_patches, dim) which is not true for non-ViT checkpoints."
+        assert "vit" in ckpt, err_msg
+        self.model = timm.create_model(ckpt, pretrained=True)
+
+        data_cfg = timm.data.resolve_data_config(self.model.pretrained_cfg)
+        self.img_transform = timm.data.create_transform(**data_cfg)
+
+    def make_img_transform(self):
+        return self.img_transform
+
+    def img_encode(
+        self, batch: Float[Tensor, "batch 3 width height"]
+    ) -> cvml.EncodedImgBatch:
+        patches = self.model.forward_features(batch)
+        # Use [CLS] token if it exists, otherwise do a maxpool
+        if self.model.num_prefix_tokens > 0:
+            img = patches[:, 0, ...]
+        else:
+            img = patches.max(axis=1).values
+
+        # Remove all non-image patches, like the [CLS] token or registers
+        patches = patches[:, self.model.num_prefix_tokens :, ...]
+
+        return cvml.EncodedImgBatch(img, patches)
+
+
+@jaxtyped(typechecker=beartype.beartype)
+class TorchvisionModel(cvml.VisionBackbone):
+    def __init__(self, ckpt: str):
+        import torchvision
+
+        arch, weights = ckpt.split("/")
+        self.model = getattr(torchvision, arch)(weights=weights)
+        self.model.eval()
+
+    def img_encode(
+        self, batch: Float[Tensor, "batch 3 width height"]
+    ) -> cvml.EncodedImgBatch:
+        breakpoint()
+
+    def make_img_transform(self):
+        # Per the docs, each set of weights has its own transform: https://pytorch.org/vision/stable/models.html#using-the-pre-trained-models
+        return self.model.weights.transforms()
+
+```
+
+# small_data_metrics/config.py
+
+```python
+"""Configuration management for small data metrics experiments.
+
+This module provides dataclasses and utilities for loading, managing, and
+validating experiment configurations from TOML files.
+"""
+
+import dataclasses
+import os.path
+import tomllib
+import typing
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import polars as pl
+
+
+@dataclasses.dataclass(frozen=True)
+class Model:
+    """Configuration for a model to be evaluated.
+
+    This class defines the essential parameters needed to identify and load a specific model for evaluation in the benchmark.
+
+    Attributes:
+        method: The type of model - either "cvml" (computer vision model) or "mllm" (multimodal language model).
+        org: Organization or source of the model (e.g., "openai", "google", "openrouter").
+        ckpt: Checkpoint or specific model identifier (e.g., "gpt-4o", "gemini-2.0-flash").
+    """
+
+    method: typing.Literal["cvml", "mllm"]
+    org: str
+    ckpt: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Newt:
+    """Configuration options specific to the NeWT benchmark."""
+
+    # Filter options - can specify task names, clusters, sub-clusters, or combinations
+    tasks: list[str] | None = None
+    """List of specific NeWT task names to run. If None, all tasks are included unless filtered by other criteria."""
+
+    include_clusters: list[str] | None = None
+    """List of NeWT task clusters to run (e.g., "appearance", "behavior", "context"). If None, all clusters are included."""
+
+    include_subclusters: list[str] | None = None
+    """List of NeWT task sub-clusters to run (e.g., "species", "age", "health"). If None, all sub-clusters are included."""
+
+    exclude_tasks: list[str] | None = None
+    """List of task names to exclude even if they match other criteria."""
+
+    exclude_clusters: list[str] | None = None
+    """List of cluster names to exclude even if they contain tasks that match other criteria."""
+
+    exclude_subclusters: list[str] | None = None
+    """List of sub-cluster names to exclude even if they contain tasks that match other criteria."""
+
+
+@dataclasses.dataclass(frozen=True)
+class Experiment:
+    """Configuration for a benchmark experiment.
+
+    This class defines all parameters needed to run a benchmark experiment, including model selection, dataset configuration, evaluation settings, and output preferences.
+    """
+
+    model: Model
+
+    n_train: int = -1
+    """Number of maximum training samples. Negative number means use all of them."""
+    n_test: int = -1
+    """Number of test samples. Negative number means use all of them."""
+    sampling: typing.Literal["uniform", "balanced"] = "uniform"
+
+    device: typing.Literal["cpu", "mps", "cuda"] = "cuda"
+    """which kind of accelerator to use."""
+    debug: bool = False
+    """whether to run in debug mode."""
+
+    ssl: bool = True
+    """Use SSL when connecting to remote servers to download checkpoints; use --no-ssl if your machine has certificate issues. See `biobench.third_party_models.get_ssl()` for a discussion of how this works."""
+    # Reporting and graphing.
+    report_to: str = os.path.join(".", "results")
+    """where to save reports to."""
+    graph: bool = True
+    """whether to make graphs."""
+    graph_to: str = os.path.join(".", "graphs")
+    """where to save graphs to."""
+    log_to: str = os.path.join(".", "logs")
+    """where to save logs to."""
+
+    # MLLM only
+    temp: float = 0.0
+    prompting: typing.Literal["single", "multi"] = "single"
+    cot_enabled: bool = False
+    parallel: int = 1
+    """Number of parallel requests per second to MLLM service providers."""
+
+    # CVML only
+    slurm: bool = False
+    """whether to use submitit to run jobs on a slurm cluster."""
+    slurm_acct: str = ""
+    """slurm account string."""
+    batch_size: int = 256
+    """Batch size for computer vision model."""
+    n_workers: int = 8
+    """Number of dataloader worker processes."""
+    seed: int = 17
+    """Radnom seed."""
+
+    newt_data: str = ""
+    newt: Newt = dataclasses.field(default_factory=Newt)
+
+    def get_newt_df(self) -> "pl.DataFrame":
+        """Load the NeWT dataset labels into a Polars DataFrame.
+
+        This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
+
+        Returns:
+            A Polars DataFrame containing the NeWT dataset labels and metadata.
+        """
+        import polars as pl
+
+        labels_csv_path = os.path.join(self.newt_data, "newt2021_labels.csv")
+
+        if not os.path.isfile(labels_csv_path):
+            msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset?"
+            raise RuntimeError(msg)
+
+        return pl.read_csv(labels_csv_path)
+
+    def to_dict(self) -> dict[str, object]:
+        """Convert the experiment configuration to a dictionary.
+
+        Returns:
+            A dictionary representation of all configuration parameters.
+        """
+        return dataclasses.asdict(self)
+
+
+def load(path: str) -> list[Experiment]:
+    """Load experiments from a TOML file.
+
+    None of the fields in Experiment are lists, so anytime we find a list in the TOML, we add another dimension to our grid search over all possible experiments.
+    """
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"TOML file {path} must contain a dictionary at the root level"
+        )
+
+    # Extract models list
+    models = data.pop("models", [])
+    if not isinstance(models, list):
+        raise ValueError("models must be a list of tables in TOML")
+
+    # Start with models as base experiments
+    experiments = [{"model": Model(**model)} for model in models]
+
+    # Handle NeWT config specially
+    newt = data.pop("newt", {})
+
+    # For each remaining field in the TOML
+    for key, value in data.items():
+        new_experiments = []
+
+        # Convert single values to lists
+        if not isinstance(value, list):
+            value = [value]
+
+        # For each existing partial experiment
+        for exp in experiments:
+            # Add every value for this field
+            for v in value:
+                new_exp = exp.copy()
+                new_exp[key] = v
+                new_experiments.append(new_exp)
+
+        experiments = new_experiments
+
+    # Now add the NeWT config to all experiments
+    for exp in experiments:
+        exp["newt"] = Newt(**newt)
+
+    # Convert dictionaries to Experiment objects
+    return [Experiment(**exp) for exp in experiments]
+
+```
+
+# small_data_metrics/helpers.py
+
+```python
+"""Useful helpers for more than two tasks that don't fit anywhere else."""
+
+import collections.abc
+import io
+import logging
+import os.path
+import time
+
+import beartype
+import pybase64
+from PIL import Image
+
+
+@beartype.beartype
+class progress:
+    def __init__(self, it, *, every: int = 10, desc: str = "progress"):
+        """Wraps an iterable with a logger like tqdm but doesn't use any control codes to manipulate a progress bar, which doesn't work well when your output is redirected to a file. Instead, simple logging statements are used, but it includes quality-of-life features like iteration speed and predicted time to finish.
+
+        Args:
+            it: Iterable to wrap.
+            every: How many iterations between logging progress.
+            desc: What to name the logger.
+        """
+        self.it = it
+        self.every = every
+        self.logger = logging.getLogger(desc)
+
+    def __iter__(self):
+        start = time.time()
+        for i, obj in enumerate(self.it):
+            yield obj
+
+            if (i + 1) % self.every == 0:
+                now = time.time()
+                duration_s = now - start
+                per_min = (i + 1) / (duration_s / 60)
+
+                if isinstance(self.it, collections.abc.Sized):
+                    pred_min = (len(self) - (i + 1)) / per_min
+                    self.logger.info(
+                        "%d/%d (%.1f%%) | %.1f it/m (expected finish in %.1fm)",
+                        i + 1,
+                        len(self),
+                        (i + 1) / len(self) * 100,
+                        per_min,
+                        pred_min,
+                    )
+                else:
+                    self.logger.info("%d/? | %.1f it/m", i + 1, per_min)
+
+    def __len__(self) -> int:
+        return len(self.it)
+
+
+@beartype.beartype
+def fs_safe(string: str) -> str:
+    """Makes a string safe for filesystems by removing typical special characters."""
+    return string.replace(":", "_").replace("/", "_")
+
+
+@beartype.beartype
+def write_hparam_sweep_plot(
+    task: str,
+    model: str,
+    clf,
+    x: str = "param_ridgeclassifier__alpha",
+    y: str = "mean_test_score",
+) -> str:
+    import matplotlib.pyplot as plt
+    import polars as pl
+
+    df = pl.DataFrame(clf.cv_results_)
+
+    fig, ax = plt.subplots()
+
+    if "n_resources" in df.columns:
+        for n_resources in df.get_column("n_resources").unique().sort():
+            ax.scatter(
+                x=df.filter(pl.col("n_resources") == n_resources)[x],
+                y=df.filter(pl.col("n_resources") == n_resources)[y],
+                label=f"{n_resources} ex.",
+            )
+        fig.legend()
+    else:
+        ax.scatter(x=df[x], y=df[y])
+
+    ax.set_xlabel(x)
+    ax.set_ylabel(y)
+    ax.set_xscale("log")
+    ax.set_title(model)
+
+    fig.tight_layout()
+    filepath = os.path.join("logs", f"{task}_{fs_safe(model)}_hparam.png")
+    fig.savefig(filepath)
+    return filepath
+
+
+@beartype.beartype
+def load_img_b64(path: str) -> str:
+    img = Image.open(path)
+    buf = io.BytesIO()
+    img.save(buf, format="webp")
+    b64 = pybase64.b64encode(buf.getvalue())
+    s64 = b64.decode("utf8")
+    return "data:image/webp;base64," + s64
+
+```
+
+# small_data_metrics/reporting.py
+
+```python
+"""Reporting utilities for benchmark results.
+
+This module provides classes and functions for recording, storing, and analyzing
+benchmark results, including database integration and visualization helpers.
+"""
+
+import dataclasses
+import json
+import os
+import pathlib
+import socket
+import sqlite3
+import subprocess
+import sys
+import time
+import typing
+
+import beartype
+import torch
+from jaxtyping import jaxtyped
+
+from . import config
+
+schema_fpath = pathlib.Path(__file__).parent / "schema.sql"
+
+
+@beartype.beartype
+def get_conn(cfg: config.Experiment) -> sqlite3.Connection:
+    """Get a SQLite connection to the results database.
+
+    Creates the output directory if it doesn't exist and initializes the database with the schema if needed.
+
+    Returns:
+        An initialized SQLite connection to the results database.
+    """
+    os.makedirs(cfg.report_to, exist_ok=True)
+    conn = sqlite3.connect(
+        os.path.join(cfg.report_to, "results.sqlite"), autocommit=False
+    )
+    with open(schema_fpath) as fd:
+        schema = fd.read()
+    conn.executescript(schema)
+    return conn
+
+
+@beartype.beartype
+def already_ran(
+    conn: sqlite3.Connection,
+    cfg: config.Experiment,
+    task_name: str,
+    task_cluster: str,
+    task_subcluster: str | None,
+) -> bool:
+    """Check if a benchmarking task has already been run for a given configuration.
+
+    This function queries the SQLite database to determine if a report exists for a specific task under the provided experiment configuration. It handles two cases due to a historical bug where many tasks were incorrectly saved with `task_name = 'newt'` instead of their actual names.
+
+    **Bug Explanation**:
+    In earlier versions of the codebase, reports for NeWT tasks were sometimes saved with `task_name = 'newt'` (the benchmark name) instead of the specific task name (e.g., 'ml_age_coopers_hawk'). This occurred because the `Report` object's `task_name` field was not always set correctly in functions like `benchmark_cvml` or `benchmark_mllm`. As a result, the original `report_exists` check, which relied solely on `task_name`, would fail to recognize that these tasks had been run, leading to unnecessary re-runs. To address this, this function performs a fallback check: if no report with the correct `task_name` is found, it looks for a report with `task_name = 'newt'` that matches the task's `task_cluster` and `task_subcluster`. If such a report exists, it assumes the task was part of that cluster/subcluster run.
+
+    Args:
+        conn: SQLite connection object to the results database.
+        cfg: Experiment configuration object containing model details and parameters (e.g., method, org, ckpt, n_train, sampling, and MLLM-specific fields like prompting and cot_enabled).
+        task_name: The actual name of the task to check (e.g., 'ml_age_coopers_hawk').
+        task_cluster: The cluster the task belongs to (e.g., 'ml_age').
+        task_subcluster: The subcluster the task belongs to (e.g., 'age'), or None if not applicable.
+
+    Returns:
+        bool: True if a report exists for the task under the given configuration, False otherwise. Returns True if either:
+              - A report with the correct `task_name` matches the config.
+              - A report with `task_name = 'newt'` matches the config, `task_cluster`, and `task_subcluster`, indicating the task was likely run as part of that group.
+
+    Notes:
+        - The function assumes that if a 'newt' report exists for the task's cluster and subcluster, the task was included in that run. This is a heuristic to handle legacy data and should be validated if partial runs are possible.
+        - Future runs should ensure `task_name` is set correctly to avoid reliance on the fallback check.
+    """
+    cursor = conn.cursor()
+    # Step 1: Check for a report with the correct task_name
+    query_correct = """
+    SELECT COUNT(*) FROM results
+    WHERE task_name IS ?
+    AND model_org IS ?
+    AND model_ckpt IS ?
+    AND n_train IS ?
+    AND sampling IS ?
+    """
+    values_correct = [
+        task_name,
+        cfg.model.org,
+        cfg.model.ckpt,
+        cfg.n_train,
+        cfg.sampling,
+    ]
+
+    if cfg.model.method == "mllm":
+        query_correct += " AND prompting IS ? AND cot_enabled IS ?"
+        values_correct.extend([cfg.prompting, 1 if cfg.cot_enabled else 0])
+
+    cursor.execute(query_correct, values_correct)
+    (count_correct,) = cursor.fetchone()
+    if count_correct > 0:
+        return True
+
+    # Step 2: If not found, check for 'newt' with matching cluster and subcluster
+    query_newt = """
+    SELECT COUNT(*) FROM results
+    WHERE task_name IS 'newt'
+    AND task_cluster IS ?
+    AND task_subcluster IS ?
+    AND model_org IS ?
+    AND model_ckpt IS ?
+    AND n_train IS ?
+    AND sampling IS ?
+    """
+    values_newt = [
+        task_cluster,
+        task_subcluster,
+        cfg.model.org,
+        cfg.model.ckpt,
+        cfg.n_train,
+        cfg.sampling,
+    ]
+
+    if cfg.model.method == "mllm":
+        query_newt += " AND prompting IS ? AND cot_enabled IS ?"
+        values_newt.extend([cfg.prompting, 1 if cfg.cot_enabled else 0])
+
+    cursor.execute(query_newt, values_newt)
+    (count_newt,) = cursor.fetchone()
+
+    return count_newt > 0
+
+
+@jaxtyped(typechecker=beartype.beartype)
+@dataclasses.dataclass(frozen=True)
+class Prediction:
+    """An individual test prediction."""
+
+    img_id: str
+    """Whatever kind of ID; used to find the original image/example."""
+    score: float
+    """Test score; typically 0 or 1 for classification tasks."""
+    n_train: int
+    """Number of training examples used in this prection."""
+    info: dict[str, object]
+    """Any additional information included. This might be the original class, the true label, etc."""
+
+    def to_dict(self) -> dict[str, object]:
+        """Convert prediction to a JSON-compatible dictionary."""
+        return dataclasses.asdict(self)
+
+
+def _get_git_hash() -> str:
+    """Returns the hash of the current git commit, assuming we are in a git repo."""
+    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+
+
+def _get_gpu_name() -> str:
+    if torch.cuda.is_available():
+        return torch.cuda.get_device_properties(0).name
+    else:
+        return ""
+
+
+@dataclasses.dataclass
+class Report:
+    """The result of running a benchmark task.
+
+    This class is designed to store results and metadata, with experiment configuration
+    stored in the exp_cfg field to avoid duplication.
+    """
+
+    task_name: str
+    predictions: list[Prediction]
+    n_train: int
+    """Number of training samples *actually* used."""
+
+    exp_cfg: config.Experiment
+
+    _: dataclasses.KW_ONLY
+
+    task_cluster: str | None = None
+    """The cluster this task belongs to (e.g., 'birds', 'plants')."""
+    task_subcluster: str | None = None
+    """The subcluster this task belongs to (e.g., 'songbirds', 'trees')."""
+
+    # MLLM-specific
+    parse_success_rate: float | None = None
+    usd_per_answer: float | None = None
+
+    # CVML-specific
+    classifier: typing.Literal["knn", "svm", "ridge"] | None = None
+
+    # Stuff for trying to reproduce this result. These are filled in by default.
+    argv: list[str] = dataclasses.field(default_factory=lambda: sys.argv)
+    """Command used to get this report."""
+    commit: str = _get_git_hash()
+    """Git commit for this current report."""
+    posix_time: float = dataclasses.field(default_factory=time.time)
+    """Time when this report was constructed."""
+    gpu_name: str = dataclasses.field(default_factory=_get_gpu_name)
+    """Name of the GPU that ran this experiment."""
+    hostname: str = dataclasses.field(default_factory=socket.gethostname)
+    """Machine hostname that ran this experiment."""
+
+    def __repr__(self):
+        """Return a string representation of the Report.
+
+        Returns:
+            A string with task name, model name, and prediction count.
+        """
+        model_name = self.exp_cfg.model.ckpt
+        return f"Report({self.task_name}, {model_name}, {len(self.predictions)} predictions)"
+
+    def to_dict(self) -> dict[str, object]:
+        """Convert the report to a JSON-compatible dictionary. Uses dataclasses.asdict() with custom handling for special types."""
+        dct = dataclasses.asdict(self)
+
+        # Handle special cases
+        dct["exp_cfg"] = self.exp_cfg.to_dict()
+        dct["predictions"] = [p.to_dict() for p in self.predictions]
+
+        return dct
+
+    def write(self, conn: sqlite3.Connection | None = None):
+        """Write this report to a SQLite database.
+
+        Args:
+            conn: SQLite connection to write to
+        """
+        if not conn:
+            conn = self.get_conn()
+
+        # Insert into results table
+        cursor = conn.cursor()
+
+        # Determine method-specific fields
+        model_method = (
+            "mllm" if self.exp_cfg.model.org in ["anthropic", "openai"] else "cvml"
+        )
+
+        # Prepare values for results table
+        results_values = {
+            "task_name": self.task_name,
+            "task_cluster": self.task_cluster,
+            "task_subcluster": self.task_subcluster,
+            "n_train": self.n_train,
+            "n_test": len(self.predictions),
+            "sampling": self.exp_cfg.sampling,
+            "model_method": self.exp_cfg.model.method,
+            "model_org": self.exp_cfg.model.org,
+            "model_ckpt": self.exp_cfg.model.ckpt,
+            # MLLM-specific fields
+            "prompting": self.exp_cfg.prompting
+            if hasattr(self.exp_cfg, "prompting")
+            else None,
+            "cot_enabled": 1
+            if hasattr(self.exp_cfg, "cot") and self.exp_cfg.cot
+            else 0,
+            "parse_success_rate": self.parse_success_rate,
+            "usd_per_answer": self.usd_per_answer,
+            # CVML-specific fields
+            "classifier_type": self.classifier,
+            # Configuration and metadata
+            "exp_cfg": json.dumps(self.exp_cfg.to_dict()),
+            "argv": json.dumps(self.argv),
+            "git_commit": self.commit,
+            "posix": int(self.posix_time),
+            "gpu_name": self.gpu_name,
+            "hostname": self.hostname,
+        }
+
+        # Build the SQL query
+        columns = ", ".join(results_values.keys())
+        placeholders = ", ".join(["?"] * len(results_values))
+
+        # Insert into results table
+        cursor.execute(
+            f"INSERT INTO results ({columns}) VALUES ({placeholders})",
+            list(results_values.values()),
+        )
+
+        # Get the rowid of the inserted result
+        result_id = cursor.lastrowid
+
+        # Insert predictions
+        for pred in self.predictions:
+            cursor.execute(
+                "INSERT INTO predictions (img_id, score, n_train, info, result_id) VALUES (?, ?, ?, ?, ?)",
+                (
+                    pred.img_id,
+                    pred.score,
+                    pred.n_train,
+                    json.dumps(pred.info),
+                    result_id,
+                ),
+            )
+
+        # Commit the transaction
+        conn.commit()
+
+
+##########
+# COLORS #
+##########
+
+
+# https://coolors.co/palette/001219-005f73-0a9396-94d2bd-e9d8a6-ee9b00-ca6702-bb3e03-ae2012-9b2226
+
+BLACK_HEX = "001219"
+BLACK_RGB = (0, 18, 25)
+BLACK_RGB01 = tuple(c / 256 for c in BLACK_RGB)
+
+BLUE_HEX = "005f73"
+BLUE_RGB = (0, 95, 115)
+BLUE_RGB01 = tuple(c / 256 for c in BLUE_RGB)
+
+CYAN_HEX = "0a9396"
+CYAN_RGB = (10, 147, 150)
+CYAN_RGB01 = tuple(c / 256 for c in CYAN_RGB)
+
+SEA_HEX = "94d2bd"
+SEA_RGB = (148, 210, 189)
+SEA_RGB01 = tuple(c / 256 for c in SEA_RGB)
+
+CREAM_HEX = "e9d8a6"
+CREAM_RGB = (233, 216, 166)
+CREAM_RGB01 = tuple(c / 256 for c in CREAM_RGB)
+
+GOLD_HEX = "ee9b00"
+GOLD_RGB = (238, 155, 0)
+GOLD_RGB01 = tuple(c / 256 for c in GOLD_RGB)
+
+ORANGE_HEX = "ca6702"
+ORANGE_RGB = (202, 103, 2)
+ORANGE_RGB01 = tuple(c / 256 for c in ORANGE_RGB)
+
+RUST_HEX = "bb3e03"
+RUST_RGB = (187, 62, 3)
+RUST_RGB01 = tuple(c / 256 for c in RUST_RGB)
+
+SCARLET_HEX = "ae2012"
+SCARLET_RGB = (174, 32, 18)
+SCARLET_RGB01 = tuple(c / 256 for c in SCARLET_RGB)
+
+RED_HEX = "9b2226"
+RED_RGB = (155, 34, 38)
+RED_RGB01 = tuple(c / 256 for c in RED_RGB)
+
+ALL_HEX = [
+    BLACK_HEX,
+    BLUE_HEX,
+    CYAN_HEX,
+    SEA_HEX,
+    CREAM_HEX,
+    GOLD_HEX,
+    ORANGE_HEX,
+    RUST_HEX,
+    SCARLET_HEX,
+    RED_HEX,
+]
+
+ALL_RGB01 = [
+    BLACK_RGB01,
+    BLUE_RGB01,
+    CYAN_RGB01,
+    SEA_RGB01,
+    CREAM_RGB01,
+    GOLD_RGB01,
+    ORANGE_RGB01,
+    RUST_RGB01,
+    SCARLET_RGB01,
+    RED_RGB01,
+]
+
 ```
 
 # benchmark.py
 
 ```python
-"""
-Entrypoint for running benchmarking.
-"""
+"""Entrypoint for running benchmarking."""
 
 import logging
 import os
@@ -2744,7 +3069,7 @@ import beartype
 import submitit
 import tyro
 
-from small_data_metrics import config, newt, reporting
+from small_data_metrics import config, helpers, newt, reporting
 
 log_format = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
 logging.basicConfig(level=logging.INFO, format=log_format)
@@ -2753,15 +3078,12 @@ logger = logging.getLogger("benchmark.py")
 
 @beartype.beartype
 def benchmark(cfg: str):
-    """
-    Launch all jobs, using either a local GPU or a Slurm cluster.
-    Then report results and save to disk.
-    """
+    """Launch all jobs, using either a local GPU or a Slurm cluster. Then report results and save to disk."""
     cfgs = config.load(cfg)
 
     if not cfgs:
-        # Do something
-        pass
+        logger.warning("No configurations loaded.")
+        return
 
     first = cfgs[0]
     # Verify all configs have consistent execution settings
@@ -2797,19 +3119,42 @@ def benchmark(cfg: str):
         if not first.ssl:
             os.environ["BIOBENCH_DISABLE_SSL"] = "1"
 
+    conn = reporting.get_conn(first)
+
+    # Load all task names -> (cluster, subclusters)
+    task_mapping = {
+        task: (cluster, subcluster)
+        for task, cluster, subcluster in cfg.get_newt_df()
+        .select("task", "task_cluster", "task_subcluster")
+        .group_by("task")
+        .first()
+        .rows()
+    }
+
     # 2. Run benchmarks.
     jobs = []
-    for cfg in cfgs:
-        if cfg.model.method == "cvml":
-            job = executor.submit(newt.benchmark_cvml, cfg)
-            jobs.append(job)
-        elif cfg.model.method == "mllm":
-            job = executor.submit(newt.benchmark_mllm, cfg)
-            jobs.append(job)
-        else:
-            typing.assert_never(cfg.model.method)
+    n_skipped = 0
+    for cfg in helpers.progress(cfgs, desc="submitting jobs"):
+        task_names = newt.get_task_names(cfg)
+        for task_name in task_names:
+            task_cluster, task_subcluster = task_mapping[task_name]
+            if reporting.already_ran(
+                conn, cfg, task_name, task_cluster, task_subcluster
+            ):
+                n_skipped += 1
+                continue
+            else:
+                if cfg.model.method == "cvml":
+                    fn = newt.eval_task_cvml
+                elif cfg.model.method == "mllm":
+                    fn = newt.eval_task_mllm
+                else:
+                    typing.assert_never(cfg.model.method)
 
-    logger.info("Submitted %d jobs.", len(jobs))
+                job = executor.submit(fn, cfg, task_name)
+                jobs.append(job)
+
+    logger.info("Submitted %d jobs (skipped %d).", len(jobs), n_skipped)
 
     # 3. Write results to sqlite.
     for i, future in enumerate(submitit.helpers.as_completed(jobs)):
@@ -2818,9 +3163,8 @@ def benchmark(cfg: str):
             logger.warning("Error running job: %s: %s", err, err.__cause__)
             continue
 
-        reports: list[reporting.Report] = future.result()
-        for report in reports:
-            report.write()
+        report: reporting.Report = future.result()
+        report.write(conn)
         logger.info("Finished %d/%d jobs.", i + 1, len(jobs))
 
     logger.info("Finished.")

@@ -56,12 +56,28 @@ el.replaceWith(d);
 </summary>
 <pre><code class="python">@beartype.beartype
 def get_cache_dir() -&gt; str:
+    &#34;&#34;&#34;Get the cache directory for downloading models.
+
+    Checks environment variables in the following order:
+    1. SMALL_DATA_METRICS_CACHE - Custom cache for this project
+    2. HF_HOME - Hugging Face&#39;s home directory
+    3. HF_HUB_CACHE - Hugging Face&#39;s hub cache
+
+    Returns:
+        The path to the cache directory, or &#34;.&#34; (current directory) if none found.
+    &#34;&#34;&#34;
     cache_dir = &#34;&#34;
     for var in (&#34;SMALL_DATA_METRICS_CACHE&#34;, &#34;HF_HOME&#34;, &#34;HF_HUB_CACHE&#34;):
         cache_dir = cache_dir or os.environ.get(var, &#34;&#34;)
     return cache_dir or &#34;.&#34;</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Get the cache directory for downloading models.</p>
+<p>Checks environment variables in the following order:
+1. SMALL_DATA_METRICS_CACHE - Custom cache for this project
+2. HF_HOME - Hugging Face's home directory
+3. HF_HUB_CACHE - Hugging Face's hub cache</p>
+<h2 id="returns">Returns</h2>
+<p>The path to the cache directory, or "." (current directory) if none found.</p></div>
 </dd>
 <dt id="small_data_metrics.third_party_models.get_ssl"><code class="name flex">
 <span>def <span class="ident">get_ssl</span></span>(<span>) ‑> bool</span>
@@ -73,8 +89,7 @@ def get_cache_dir() -&gt; str:
 </summary>
 <pre><code class="python">@beartype.beartype
 def get_ssl() -&gt; bool:
-    &#34;&#34;&#34;
-    Checks whether BIOBENCH_DISABLE_SSL is present in the environment.
+    &#34;&#34;&#34;Checks whether BIOBENCH_DISABLE_SSL is present in the environment.
 
     We use environment variables rather than a boolean argument because
 
@@ -117,8 +132,7 @@ def get_ssl() -&gt; bool:
 </summary>
 <pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
 class OpenClip(cvml.VisionBackbone):
-    &#34;&#34;&#34;
-    Loads checkpoints from [open_clip](https://github.com/mlfoundations/open_clip), an open-source reproduction of the original [CLIP](https://arxiv.org/abs/2103.00020) paper.
+    &#34;&#34;&#34;Loads checkpoints from [open_clip](https://github.com/mlfoundations/open_clip), an open-source reproduction of the original [CLIP](https://arxiv.org/abs/2103.00020) paper.
 
     Checkpoints are in the format `&lt;ARCH&gt;/&lt;CKPT&gt;`.
     Look at the [results file](https://github.com/mlfoundations/open_clip/blob/main/docs/openclip_results.csv) for the pretrained models.

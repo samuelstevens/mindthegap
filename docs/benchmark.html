@@ -57,15 +57,12 @@ el.replaceWith(d);
 </summary>
 <pre><code class="python">@beartype.beartype
 def benchmark(cfg: str):
-    &#34;&#34;&#34;
-    Launch all jobs, using either a local GPU or a Slurm cluster.
-    Then report results and save to disk.
-    &#34;&#34;&#34;
+    &#34;&#34;&#34;Launch all jobs, using either a local GPU or a Slurm cluster. Then report results and save to disk.&#34;&#34;&#34;
     cfgs = config.load(cfg)
 
     if not cfgs:
-        # Do something
-        pass
+        logger.warning(&#34;No configurations loaded.&#34;)
+        return
 
     first = cfgs[0]
     # Verify all configs have consistent execution settings
@@ -101,19 +98,42 @@ def benchmark(cfg: str):
         if not first.ssl:
             os.environ[&#34;BIOBENCH_DISABLE_SSL&#34;] = &#34;1&#34;
 
+    conn = reporting.get_conn(first)
+
+    # Load all task names -&gt; (cluster, subclusters)
+    task_mapping = {
+        task: (cluster, subcluster)
+        for task, cluster, subcluster in cfg.get_newt_df()
+        .select(&#34;task&#34;, &#34;task_cluster&#34;, &#34;task_subcluster&#34;)
+        .group_by(&#34;task&#34;)
+        .first()
+        .rows()
+    }
+
     # 2. Run benchmarks.
     jobs = []
-    for cfg in cfgs:
-        if cfg.model.method == &#34;cvml&#34;:
-            job = executor.submit(newt.benchmark_cvml, cfg)
-            jobs.append(job)
-        elif cfg.model.method == &#34;mllm&#34;:
-            job = executor.submit(newt.benchmark_mllm, cfg)
-            jobs.append(job)
-        else:
-            typing.assert_never(cfg.model.method)
+    n_skipped = 0
+    for cfg in helpers.progress(cfgs, desc=&#34;submitting jobs&#34;):
+        task_names = newt.get_task_names(cfg)
+        for task_name in task_names:
+            task_cluster, task_subcluster = task_mapping[task_name]
+            if reporting.already_ran(
+                conn, cfg, task_name, task_cluster, task_subcluster
+            ):
+                n_skipped += 1
+                continue
+            else:
+                if cfg.model.method == &#34;cvml&#34;:
+                    fn = newt.eval_task_cvml
+                elif cfg.model.method == &#34;mllm&#34;:
+                    fn = newt.eval_task_mllm
+                else:
+                    typing.assert_never(cfg.model.method)
 
-    logger.info(&#34;Submitted %d jobs.&#34;, len(jobs))
+                job = executor.submit(fn, cfg, task_name)
+                jobs.append(job)
+
+    logger.info(&#34;Submitted %d jobs (skipped %d).&#34;, len(jobs), n_skipped)
 
     # 3. Write results to sqlite.
     for i, future in enumerate(submitit.helpers.as_completed(jobs)):
@@ -122,15 +142,13 @@ def benchmark(cfg: str):
             logger.warning(&#34;Error running job: %s: %s&#34;, err, err.__cause__)
             continue
 
-        reports: list[reporting.Report] = future.result()
-        for report in reports:
-            report.write()
+        report: reporting.Report = future.result()
+        report.write(conn)
         logger.info(&#34;Finished %d/%d jobs.&#34;, i + 1, len(jobs))
 
     logger.info(&#34;Finished.&#34;)</code></pre>
 </details>
-<div class="desc"><p>Launch all jobs, using either a local GPU or a Slurm cluster.
-Then report results and save to disk.</p></div>
+<div class="desc"><p>Launch all jobs, using either a local GPU or a Slurm cluster. Then report results and save to disk.</p></div>
 </dd>
 </dl>
 </section>

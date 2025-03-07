@@ -18,12 +18,10 @@ if TYPE_CHECKING:
 class Model:
     """Configuration for a model to be evaluated.
 
-    This class defines the essential parameters needed to identify and load
-    a specific model for evaluation in the benchmark.
+    This class defines the essential parameters needed to identify and load a specific model for evaluation in the benchmark.
 
     Attributes:
-        method: The type of model - either "cvml" (computer vision model) or
-                "mllm" (multimodal language model).
+        method: The type of model - either "cvml" (computer vision model) or "mllm" (multimodal language model).
         org: Organization or source of the model (e.g., "openai", "google", "openrouter").
         ckpt: Checkpoint or specific model identifier (e.g., "gpt-4o", "gemini-2.0-flash").
     """
@@ -61,9 +59,7 @@ class Newt:
 class Experiment:
     """Configuration for a benchmark experiment.
 
-    This class defines all parameters needed to run a benchmark experiment,
-    including model selection, dataset configuration, evaluation settings,
-    and output preferences.
+    This class defines all parameters needed to run a benchmark experiment, including model selection, dataset configuration, evaluation settings, and output preferences.
     """
 
     model: Model
@@ -115,19 +111,20 @@ class Experiment:
 
     def get_newt_df(self) -> "pl.DataFrame":
         """Load the NeWT dataset labels into a Polars DataFrame.
-        
-        This method reads the NeWT labels CSV file from the configured data directory
-        and returns it as a structured DataFrame for further processing.
-        
+
+        This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
+
         Returns:
             A Polars DataFrame containing the NeWT dataset labels and metadata.
-            
-        Raises:
-            FileNotFoundError: If the labels CSV file doesn't exist at the specified path.
         """
         import polars as pl
 
         labels_csv_path = os.path.join(self.newt_data, "newt2021_labels.csv")
+
+        if not os.path.isfile(labels_csv_path):
+            msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset?"
+            raise RuntimeError(msg)
+
         return pl.read_csv(labels_csv_path)
 
     def to_dict(self) -> dict[str, object]:

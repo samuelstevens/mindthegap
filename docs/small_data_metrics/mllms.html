@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
 <title>small_data_metrics.mllms API documentation</title>
-<meta name="description" content="">
+<meta name="description" content="Multimodal LLM interface for interacting with vision-language models …">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
@@ -38,6 +38,9 @@ el.replaceWith(d);
 <h1 class="title">Module <code>small_data_metrics.mllms</code></h1>
 </header>
 <section id="section-intro">
+<p>Multimodal LLM interface for interacting with vision-language models.</p>
+<p>This module provides utilities for prompting, rate limiting, and managing
+multimodal language models (MLLMs) that can process both images and text.</p>
 </section>
 <section>
 </section>
@@ -58,12 +61,36 @@ el.replaceWith(d);
 def fits(
     cfg: config.Experiment, examples: list[Example], img_b64: str, user: str
 ) -&gt; bool:
+    &#34;&#34;&#34;Check if a prompt will fit within the model&#39;s context window.
+
+    Args:
+        cfg: Experiment configuration.
+        examples: Few-shot examples to include in the prompt.
+        img_b64: Base64-encoded image data.
+        user: User prompt text.
+
+    Returns:
+        True if the prompt fits within the model&#39;s context window, False otherwise.
+    &#34;&#34;&#34;
     mllm = load_mllm(cfg.model)
     messages = make_prompt(cfg, examples, img_b64, user)
     n_tokens = litellm.token_counter(model=cfg.model.ckpt, messages=messages)
     return n_tokens &lt;= mllm.max_tokens</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Check if a prompt will fit within the model's context window.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>cfg</code></strong></dt>
+<dd>Experiment configuration.</dd>
+<dt><strong><code>examples</code></strong></dt>
+<dd>Few-shot examples to include in the prompt.</dd>
+<dt><strong><code>img_b64</code></strong></dt>
+<dd>Base64-encoded image data.</dd>
+<dt><strong><code>user</code></strong></dt>
+<dd>User prompt text.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>True if the prompt fits within the model's context window, False otherwise.</p></div>
 </dd>
 <dt id="small_data_metrics.mllms.list_mllms"><code class="name flex">
 <span>def <span class="ident">list_mllms</span></span>(<span>) ‑> list[tuple[str, str]]</span>
@@ -75,9 +102,7 @@ def fits(
 </summary>
 <pre><code class="python">@beartype.beartype
 def list_mllms() -&gt; list[tuple[str, str]]:
-    &#34;&#34;&#34;
-    List all registered multimodal LLM models.
-    &#34;&#34;&#34;
+    &#34;&#34;&#34;List all registered multimodal LLM models.&#34;&#34;&#34;
     return list(_global_mllm_registry.keys())</code></pre>
 </details>
 <div class="desc"><p>List all registered multimodal LLM models.</p></div>
@@ -92,9 +117,7 @@ def list_mllms() -&gt; list[tuple[str, str]]:
 </summary>
 <pre><code class="python">@beartype.beartype
 def load_mllm(cfg: config.Model) -&gt; Mllm:
-    &#34;&#34;&#34;
-    Load a multimodal LLM configuration.
-    &#34;&#34;&#34;
+    &#34;&#34;&#34;Load a multimodal LLM configuration.&#34;&#34;&#34;
     key = (cfg.org, cfg.ckpt)
     if key not in _global_mllm_registry:
         raise ValueError(f&#34;Model &#39;{key}&#39; not found.&#34;)
@@ -120,6 +143,21 @@ def make_prompt(
     *,
     system: str = &#34;&#34;,
 ) -&gt; list[object]:
+    &#34;&#34;&#34;Create a prompt for the LLM based on the experiment configuration.
+
+    Args:
+        cfg: Experiment configuration with prompting style.
+        examples: Few-shot examples to include in the prompt.
+        img_b64: Base64-encoded image data.
+        user: User prompt text.
+        system: Optional system message to include.
+
+    Returns:
+        List of message objects formatted for the LLM API.
+
+    Raises:
+        AssertionError: If prompting style is not recognized.
+    &#34;&#34;&#34;
     if cfg.prompting == &#34;single&#34;:
         return _make_single_turn_prompt(examples, img_b64, user, system=system)
     elif cfg.prompting == &#34;multi&#34;:
@@ -127,7 +165,27 @@ def make_prompt(
     else:
         typing.assert_never(cfg.prompting)</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Create a prompt for the LLM based on the experiment configuration.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>cfg</code></strong></dt>
+<dd>Experiment configuration with prompting style.</dd>
+<dt><strong><code>examples</code></strong></dt>
+<dd>Few-shot examples to include in the prompt.</dd>
+<dt><strong><code>img_b64</code></strong></dt>
+<dd>Base64-encoded image data.</dd>
+<dt><strong><code>user</code></strong></dt>
+<dd>User prompt text.</dd>
+<dt><strong><code>system</code></strong></dt>
+<dd>Optional system message to include.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>List of message objects formatted for the LLM API.</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>AssertionError</code></dt>
+<dd>If prompting style is not recognized.</dd>
+</dl></div>
 </dd>
 <dt id="small_data_metrics.mllms.register_mllm"><code class="name flex">
 <span>def <span class="ident">register_mllm</span></span>(<span>model_org: str,<br>mllm: <a title="small_data_metrics.mllms.Mllm" href="#small_data_metrics.mllms.Mllm">Mllm</a>)</span>
@@ -139,9 +197,7 @@ def make_prompt(
 </summary>
 <pre><code class="python">@beartype.beartype
 def register_mllm(model_org: str, mllm: Mllm):
-    &#34;&#34;&#34;
-    Register a new multimodal LLM configuration.
-    &#34;&#34;&#34;
+    &#34;&#34;&#34;Register a new multimodal LLM configuration.&#34;&#34;&#34;
     key = (model_org, mllm.name)
     if key in _global_mllm_registry:
         logger.warning(&#34;Overwriting key &#39;%s&#39; in registry.&#34;, key)
@@ -167,14 +223,15 @@ async def send(
     max_retries: int = 5,
     system: str = &#34;&#34;,
 ) -&gt; str:
-    &#34;&#34;&#34;
-    Send a message to the LLM and get the response.
+    &#34;&#34;&#34;Send a message to the LLM and get the response.
 
     Args:
-        cfg: TODO
-        examples: Few-shot examples.
-        image: The input image.
-        user: The user request.
+        cfg: Experiment configuration with model and parameters.
+        examples: Few-shot examples to include in the prompt.
+        img_b64: Base64-encoded image data with data URI prefix.
+        user: The user request or prompt text.
+        max_retries: Maximum number of retry attempts for failed API calls.
+        system: Optional system message to include in the prompt.
 
     Returns:
         The LLM&#39;s response as a string.
@@ -183,7 +240,6 @@ async def send(
         ValueError: If required settings are missing
         RuntimeError: If LLM call fails
     &#34;&#34;&#34;
-
     messages = make_prompt(cfg, examples, img_b64, user)
     mllm = load_mllm(cfg.model)
 
@@ -248,13 +304,17 @@ async def send(
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>cfg</code></strong></dt>
-<dd>TODO</dd>
+<dd>Experiment configuration with model and parameters.</dd>
 <dt><strong><code>examples</code></strong></dt>
-<dd>Few-shot examples.</dd>
-<dt><strong><code>image</code></strong></dt>
-<dd>The input image.</dd>
+<dd>Few-shot examples to include in the prompt.</dd>
+<dt><strong><code>img_b64</code></strong></dt>
+<dd>Base64-encoded image data with data URI prefix.</dd>
 <dt><strong><code>user</code></strong></dt>
-<dd>The user request.</dd>
+<dd>The user request or prompt text.</dd>
+<dt><strong><code>max_retries</code></strong></dt>
+<dd>Maximum number of retry attempts for failed API calls.</dd>
+<dt><strong><code>system</code></strong></dt>
+<dd>Optional system message to include in the prompt.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <p>The LLM's response as a string.</p>
@@ -283,11 +343,35 @@ async def send(
 <pre><code class="python">@beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class Example:
+    &#34;&#34;&#34;A single example for few-shot learning with multimodal LLMs.
+
+    This class represents a complete example interaction with an MLLM,
+    containing an image, a user prompt, and the expected assistant response.
+    Used for few-shot prompting to demonstrate the expected behavior.
+
+    Attributes:
+        img_b64: Base64-encoded image data with data URI prefix.
+        user: The user&#39;s text prompt or question about the image.
+        assistant: The expected/reference response from the assistant.
+    &#34;&#34;&#34;
+
     img_b64: str
     user: str
     assistant: str</code></pre>
 </details>
-<div class="desc"><p>Example(img_b64: str, user: str, assistant: str)</p></div>
+<div class="desc"><p>A single example for few-shot learning with multimodal LLMs.</p>
+<p>This class represents a complete example interaction with an MLLM,
+containing an image, a user prompt, and the expected assistant response.
+Used for few-shot prompting to demonstrate the expected behavior.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>img_b64</code></strong></dt>
+<dd>Base64-encoded image data with data URI prefix.</dd>
+<dt><strong><code>user</code></strong></dt>
+<dd>The user's text prompt or question about the image.</dd>
+<dt><strong><code>assistant</code></strong></dt>
+<dd>The expected/reference response from the assistant.</dd>
+</dl></div>
 <h3>Class variables</h3>
 <dl>
 <dt id="small_data_metrics.mllms.Example.assistant"><code class="name">var <span class="ident">assistant</span> : str</code></dt>
@@ -315,13 +399,36 @@ class Example:
 </summary>
 <pre><code class="python">@dataclasses.dataclass(frozen=True)
 class Mllm:
+    &#34;&#34;&#34;Configuration for a multimodal language model.
+
+    Attributes:
+        name: Model identifier/checkpoint name.
+        max_tokens: Maximum context length supported by the model.
+        usd_per_m_input: Cost in USD per million input tokens.
+        usd_per_m_output: Cost in USD per million output tokens.
+        quantizations: List of supported quantization formats.
+    &#34;&#34;&#34;
+
     name: str
     max_tokens: int
     usd_per_m_input: float
     usd_per_m_output: float
     quantizations: list[str] = dataclasses.field(default_factory=list)</code></pre>
 </details>
-<div class="desc"><p>Mllm(name: str, max_tokens: int, usd_per_m_input: float, usd_per_m_output: float, quantizations: list[str] = <factory>)</p></div>
+<div class="desc"><p>Configuration for a multimodal language model.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>name</code></strong></dt>
+<dd>Model identifier/checkpoint name.</dd>
+<dt><strong><code>max_tokens</code></strong></dt>
+<dd>Maximum context length supported by the model.</dd>
+<dt><strong><code>usd_per_m_input</code></strong></dt>
+<dd>Cost in USD per million input tokens.</dd>
+<dt><strong><code>usd_per_m_output</code></strong></dt>
+<dd>Cost in USD per million output tokens.</dd>
+<dt><strong><code>quantizations</code></strong></dt>
+<dd>List of supported quantization formats.</dd>
+</dl></div>
 <h3>Class variables</h3>
 <dl>
 <dt id="small_data_metrics.mllms.Mllm.max_tokens"><code class="name">var <span class="ident">max_tokens</span> : int</code></dt>
@@ -357,12 +464,28 @@ class Mllm:
 </summary>
 <pre><code class="python">@beartype.beartype
 class RateLimiter:
+    &#34;&#34;&#34;Rate limiter for API calls to prevent exceeding rate limits.
+
+    Implements a sliding window rate limiting algorithm to control
+    the frequency of API calls.
+    &#34;&#34;&#34;
+
     def __init__(self, max_rate: int, window_s: float = 1.0):
+        &#34;&#34;&#34;Initialize the rate limiter.
+
+        Args:
+            max_rate: Maximum number of requests allowed in the time window.
+            window_s: Time window in seconds.
+        &#34;&#34;&#34;
         self.max_rate = max_rate
         self.window_s = window_s
         self.timestamps = collections.deque()
 
     async def acquire(self):
+        &#34;&#34;&#34;Acquire permission to make an API call.
+
+        Blocks until a request can be made without exceeding the rate limit.
+        &#34;&#34;&#34;
         now = time.monotonic()
 
         # Remove timestamps older than our window
@@ -380,7 +503,17 @@ class RateLimiter:
         # Add current timestamp
         self.timestamps.append(time.monotonic())</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Rate limiter for API calls to prevent exceeding rate limits.</p>
+<p>Implements a sliding window rate limiting algorithm to control
+the frequency of API calls.</p>
+<p>Initialize the rate limiter.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>max_rate</code></strong></dt>
+<dd>Maximum number of requests allowed in the time window.</dd>
+<dt><strong><code>window_s</code></strong></dt>
+<dd>Time window in seconds.</dd>
+</dl></div>
 <h3>Methods</h3>
 <dl>
 <dt id="small_data_metrics.mllms.RateLimiter.acquire"><code class="name flex">
@@ -392,6 +525,10 @@ class RateLimiter:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">async def acquire(self):
+    &#34;&#34;&#34;Acquire permission to make an API call.
+
+    Blocks until a request can be made without exceeding the rate limit.
+    &#34;&#34;&#34;
     now = time.monotonic()
 
     # Remove timestamps older than our window
@@ -409,7 +546,8 @@ class RateLimiter:
     # Add current timestamp
     self.timestamps.append(time.monotonic())</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Acquire permission to make an API call.</p>
+<p>Blocks until a request can be made without exceeding the rate limit.</p></div>
 </dd>
 </dl>
 </dd>

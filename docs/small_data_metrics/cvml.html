@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
 <title>small_data_metrics.cvml API documentation</title>
-<meta name="description" content="Stores all vision backbones.
-Users can register new custom backbones from their code to evaluate on biobench using `register_vision_backbone`.
-As long …">
+<meta name="description" content="Stores all vision backbones …">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
@@ -40,8 +38,8 @@ el.replaceWith(d);
 <h1 class="title">Module <code>small_data_metrics.cvml</code></h1>
 </header>
 <section id="section-intro">
-<p>Stores all vision backbones.
-Users can register new custom backbones from their code to evaluate on biobench using <code><a title="small_data_metrics.cvml.register_vision_backbone" href="#small_data_metrics.cvml.register_vision_backbone">register_vision_backbone()</a></code>.
+<p>Stores all vision backbones.</p>
+<p>Users can register new custom backbones from their code to evaluate on biobench using <code><a title="small_data_metrics.cvml.register_vision_backbone" href="#small_data_metrics.cvml.register_vision_backbone">register_vision_backbone()</a></code>.
 As long as it satisfies the <code>biobench.cvml.VisionBackbone</code> interface, it will work will all tasks.</p>
 <h1 id="adding-new-models">Adding New Models</h1>
 <p>To add a new model, you need to:</p>
@@ -103,9 +101,7 @@ Then we load the weights.</p>
 </summary>
 <pre><code class="python">@beartype.beartype
 def list_vision_backbones() -&gt; list[str]:
-    &#34;&#34;&#34;
-    List all vision backbone model orgs.
-    &#34;&#34;&#34;
+    &#34;&#34;&#34;List all vision backbone model orgs.&#34;&#34;&#34;
     return list(_global_backbone_registry.keys())</code></pre>
 </details>
 <div class="desc"><p>List all vision backbone model orgs.</p></div>
@@ -119,11 +115,17 @@ def list_vision_backbones() -&gt; list[str]:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@beartype.beartype
-def load_vision_backbone(
-    model_cfg: config.Model,
-) -&gt; VisionBackbone:
-    &#34;&#34;&#34;
-    Load a pretrained vision backbone.
+def load_vision_backbone(model_cfg: config.Model) -&gt; VisionBackbone:
+    &#34;&#34;&#34;Load a pretrained vision backbone.
+
+    Args:
+        model_cfg: Configuration object containing the organization (&#39;org&#39;) and checkpoint (&#39;ckpt&#39;) identifiers for the model.
+
+    Returns:
+        An initialized VisionBackbone instance ready for inference.
+
+    Raises:
+        ValueError: If the specified organization is not registered.
     &#34;&#34;&#34;
     if model_cfg.org not in _global_backbone_registry:
         raise ValueError(f&#34;Org &#39;{model_cfg.org}&#39; not found.&#34;)
@@ -131,7 +133,19 @@ def load_vision_backbone(
     cls = _global_backbone_registry[model_cfg.org]
     return cls(model_cfg.ckpt)</code></pre>
 </details>
-<div class="desc"><p>Load a pretrained vision backbone.</p></div>
+<div class="desc"><p>Load a pretrained vision backbone.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>model_cfg</code></strong></dt>
+<dd>Configuration object containing the organization ('org') and checkpoint ('ckpt') identifiers for the model.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>An initialized VisionBackbone instance ready for inference.</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>If the specified organization is not registered.</dd>
+</dl></div>
 </dd>
 <dt id="small_data_metrics.cvml.register_vision_backbone"><code class="name flex">
 <span>def <span class="ident">register_vision_backbone</span></span>(<span>model_org: str,<br>cls: type[<a title="small_data_metrics.cvml.VisionBackbone" href="#small_data_metrics.cvml.VisionBackbone">VisionBackbone</a>])</span>
@@ -143,9 +157,7 @@ def load_vision_backbone(
 </summary>
 <pre><code class="python">@beartype.beartype
 def register_vision_backbone(model_org: str, cls: type[VisionBackbone]):
-    &#34;&#34;&#34;
-    Register a new vision backbone class.
-    &#34;&#34;&#34;
+    &#34;&#34;&#34;Register a new vision backbone class.&#34;&#34;&#34;
     if model_org in _global_backbone_registry:
         logger.warning(&#34;Overwriting key &#39;%s&#39; in registry.&#34;, model_org)
     _global_backbone_registry[model_org] = cls</code></pre>
@@ -200,8 +212,7 @@ class EncodedImgBatch:
 </summary>
 <pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
 class VisionBackbone(torch.nn.Module):
-    &#34;&#34;&#34;
-    A frozen vision model that embeds batches of images into batches of vectors.
+    &#34;&#34;&#34;A frozen vision model that embeds batches of images into batches of vectors.
 
     To add new models to the benchmark, you can simply create a new class that satisfies this interface and register it.
     See `biobench.registry` for a tutorial on adding new vision backbones.
@@ -215,10 +226,7 @@ class VisionBackbone(torch.nn.Module):
         raise NotImplementedError(err_msg)
 
     def make_img_transform(self):
-        &#34;&#34;&#34;
-        Return whatever function the backbone wants for image preprocessing.
-        This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone.
-        &#34;&#34;&#34;
+        &#34;&#34;&#34;Return whatever function the backbone wants for image preprocessing. This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone.&#34;&#34;&#34;
         err_msg = f&#34;{self.__class__.__name__} must implemented make_img_transform().&#34;
         raise NotImplementedError(err_msg)</code></pre>
 </details>
@@ -264,15 +272,11 @@ See <code>biobench.registry</code> for a tutorial on adding new vision backbones
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def make_img_transform(self):
-    &#34;&#34;&#34;
-    Return whatever function the backbone wants for image preprocessing.
-    This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone.
-    &#34;&#34;&#34;
+    &#34;&#34;&#34;Return whatever function the backbone wants for image preprocessing. This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone.&#34;&#34;&#34;
     err_msg = f&#34;{self.__class__.__name__} must implemented make_img_transform().&#34;
     raise NotImplementedError(err_msg)</code></pre>
 </details>
-<div class="desc"><p>Return whatever function the backbone wants for image preprocessing.
-This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone.</p></div>
+<div class="desc"><p>Return whatever function the backbone wants for image preprocessing. This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone.</p></div>
 </dd>
 </dl>
 </dd>

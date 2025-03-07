@@ -60,18 +60,15 @@ _global_backbone_registry: dict[str, type[VisionBackbone]] = {}
 
 
 @beartype.beartype
-def load_vision_backbone(
-    model_cfg: config.Model,
-) -> VisionBackbone:
+def load_vision_backbone(model_cfg: config.Model) -> VisionBackbone:
     """Load a pretrained vision backbone.
-    
+
     Args:
-        model_cfg: Configuration object containing the organization ('org') 
-                  and checkpoint ('ckpt') identifiers for the model.
-                  
+        model_cfg: Configuration object containing the organization ('org') and checkpoint ('ckpt') identifiers for the model.
+
     Returns:
         An initialized VisionBackbone instance ready for inference.
-        
+
     Raises:
         ValueError: If the specified organization is not registered.
     """

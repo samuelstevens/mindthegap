@@ -1,0 +1,1356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.5">
+<title>small_data_metrics.newt API documentation</title>
+<meta name="description" content="NeWT: Natural World Tasks …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script type="text/x-mathjax-config">MathJax.Hub.Config({ tex2jax: { inlineMath: [ ['$','$'], ["\\(","\\)"] ], processEscapes: true } });</script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>small_data_metrics.newt</code></h1>
+</header>
+<section id="section-intro">
+<p>NeWT: Natural World Tasks.</p>
+<p>NeWT is a collection of 164 binary classification tasks related to visual understanding of the natural world (<a href="https://arxiv.org/abs/2103.16483">CVPR 2021 paper</a>, <a href="https://github.com/visipedia/newt/tree/main">code</a>).</p>
+<p>We evaluate a vision model by extracting visual features for each image, fitting a linear SVM to the training examples, and evaluating on the test data.
+We aggregate scores across all 164 tasks.</p>
+<p>If you use this evaluation, be sure to cite the original work:</p>
+<pre><code>@inproceedings{van2021benchmarking,
+  title={Benchmarking Representation Learning for Natural World Image Collections},
+  author={Van Horn, Grant and Cole, Elijah and Beery, Sara and Wilber, Kimberly and Belongie, Serge and Mac Aodha, Oisin},
+  booktitle={Computer Vision and Pattern Recognition},
+  year={2021}
+}
+</code></pre>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="small_data_metrics.newt.eval_task_cvml"><code class="name flex">
+<span>def <span class="ident">eval_task_cvml</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>task_name: str) ‑> <a title="small_data_metrics.reporting.Report" href="reporting.html#small_data_metrics.reporting.Report">Report</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@beartype.beartype
+def eval_task_cvml(cfg: config.Experiment, task_name: str) -&gt; reporting.Report:
+    &#34;&#34;&#34;Benchmark a computer vision model on a task from the NeWT benchmark.
+
+    Args:
+        cfg: Configuration for the experiment, including model, dataset paths, and parameters for training and evaluation.
+        task_name: Specific task name.
+
+    Returns:
+        A Report object containing evaluation results for the task.
+    &#34;&#34;&#34;
+    rng_np = np.random.default_rng(seed=cfg.seed)
+
+    backbone = cvml.load_vision_backbone(cfg.model)
+
+    train_dataset, test_dataset = get_splits_cvml(cfg, backbone, task_name, rng_np)
+    x_train = train_dataset.x.numpy()
+    y_train = train_dataset.y.numpy()
+    x_test = test_dataset.x.numpy()
+    y_test = test_dataset.y.numpy()
+
+    n_train = len(x_train)
+    assert n_train &gt;= 2
+
+    x_mean = x_train.mean(axis=0, keepdims=True)
+
+    x_train = x_train - x_mean
+    x_train = l2_normalize(x_train)
+
+    x_test = x_test - x_mean
+    x_test = l2_normalize(x_test)
+
+    svc = init_svc(n_train)
+    svc.fit(x_train, y_train)
+
+    y_pred = svc.predict(x_test)
+
+    info = {
+        &#34;task&#34;: test_dataset.task,
+        &#34;cluster&#34;: test_dataset.cluster,
+        &#34;subcluster&#34;: test_dataset.subcluster,
+    }
+
+    preds = [
+        reporting.Prediction(str(id), float(pred == true), n_train, info)
+        for id, pred, true in zip(test_dataset.img_ids, y_pred, y_test)
+    ]
+    report = reporting.Report(
+        task_name,
+        preds,
+        preds[0].n_train,
+        cfg,
+        task_cluster=test_dataset.cluster,
+        task_subcluster=test_dataset.subcluster,
+    )
+    return report</code></pre>
+</details>
+<div class="desc"><p>Benchmark a computer vision model on a task from the NeWT benchmark.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>cfg</code></strong></dt>
+<dd>Configuration for the experiment, including model, dataset paths, and parameters for training and evaluation.</dd>
+<dt><strong><code>task_name</code></strong></dt>
+<dd>Specific task name.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>A Report object containing evaluation results for the task.</p></div>
+</dd>
+<dt id="small_data_metrics.newt.eval_task_mllm"><code class="name flex">
+<span>def <span class="ident">eval_task_mllm</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>task_name: str) ‑> <a title="small_data_metrics.reporting.Report" href="reporting.html#small_data_metrics.reporting.Report">Report</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@beartype.beartype
+def eval_task_mllm(cfg: config.Experiment, task_name: str) -&gt; reporting.Report:
+    &#34;&#34;&#34;Benchmark a multimodal language model on a task from the NeWT dataset.
+
+    This function evaluates an MLLM by prompting it with images and questions about the content, then evaluating its responses against ground truth.
+
+    Args:
+        cfg: Configuration for the experiment, including model, dataset paths, and parameters for evaluation.
+        task_name: Task name.
+
+    Returns:
+        A Report object containing evaluation results for the task.
+    &#34;&#34;&#34;
+    rng = random.Random(cfg.seed)
+
+    with asyncio.Runner() as loop:
+        limiter = mllms.RateLimiter(cfg.parallel)
+        semaphore = asyncio.Semaphore(cfg.parallel)
+
+        train_dataset, test_dataset = get_splits_mllm(cfg, task_name)
+
+        # We load all the training samples into memory right away because they will be re-used over and over again.
+        # Test samples are loaded one by one on demand.
+        i_train = list(range(len(train_dataset)))
+        if cfg.n_train &gt;= 0:
+            i_train = rng.sample(i_train, k=min(cfg.n_train, len(i_train)))
+        else:
+            i_train = i_train
+
+        train_examples = [train_dataset[i].to_example(rng) for i in i_train]
+        logger.info(
+            &#34;Loaded %d/%d training examples (%s).&#34;,
+            len(train_examples),
+            len(train_dataset),
+            train_dataset.task,
+        )
+
+        @beartype.beartype
+        async def run_one(i: int) -&gt; reporting.Prediction:
+            async with semaphore:
+                example = test_dataset[i]
+
+                # Set up prompt.
+                n = 0
+                fewshot = []
+                while (
+                    mllms.fits(cfg, fewshot, example.img_b64, example.make_user(rng))
+                ) and (cfg.n_train &lt; 0 or n &lt; cfg.n_train):
+                    # Add another example.
+                    n += 1
+                    fewshot = train_examples[:n]
+
+                # Only shuffle once.
+                rng.shuffle(fewshot)
+
+                await limiter.acquire()
+                assistant = await mllms.send(
+                    cfg, fewshot, example.img_b64, example.make_user(rng)
+                )
+                pred_y, parsed = example.parse_assistant(assistant)
+
+                return reporting.Prediction(
+                    example.img_id,
+                    float(pred_y == example.label),
+                    len(fewshot),
+                    info={
+                        &#34;task&#34;: test_dataset.task,
+                        &#34;cluster&#34;: test_dataset.cluster,
+                        &#34;subcluster&#34;: test_dataset.subcluster,
+                        &#34;parsed&#34;: parsed,
+                    },
+                )
+
+        @beartype.beartype
+        async def run_all() -&gt; list[reporting.Prediction]:
+            if cfg.debug:
+                logger.info(
+                    &#34;Using the first 10/%d examples for testing (%s).&#34;,
+                    len(test_dataset),
+                    test_dataset.task,
+                )
+                test_i = list(range(10))
+            elif cfg.n_test &gt;= 0 and cfg.n_test &lt; len(test_dataset):
+                logger.info(
+                    &#34;Using %d/%d random examples for testing (%s).&#34;,
+                    cfg.n_test,
+                    len(test_dataset),
+                    test_dataset.task,
+                )
+                test_i = rng.sample(range(len(test_dataset)), k=cfg.n_test)
+            else:
+                logger.info(
+                    &#34;Using all (%d) examples for testing (%s).&#34;,
+                    len(test_dataset),
+                    test_dataset.task,
+                )
+                test_i = list(range(len(test_dataset)))
+
+            jobs = [asyncio.create_task(run_one(i)) for i in test_i]
+            preds = []
+            for job in jobs:
+                pred: reporting.Prediction = await job
+                preds.append(pred)
+            return preds
+
+        preds = loop.run(run_all())
+        return reporting.Report(
+            task_name,
+            preds,
+            preds[0].n_train,
+            cfg,
+            task_cluster=test_dataset.cluster,
+            task_subcluster=test_dataset.subcluster,
+        )</code></pre>
+</details>
+<div class="desc"><p>Benchmark a multimodal language model on a task from the NeWT dataset.</p>
+<p>This function evaluates an MLLM by prompting it with images and questions about the content, then evaluating its responses against ground truth.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>cfg</code></strong></dt>
+<dd>Configuration for the experiment, including model, dataset paths, and parameters for evaluation.</dd>
+<dt><strong><code>task_name</code></strong></dt>
+<dd>Task name.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>A Report object containing evaluation results for the task.</p></div>
+</dd>
+<dt id="small_data_metrics.newt.get_splits_cvml"><code class="name flex">
+<span>def <span class="ident">get_splits_cvml</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>task_name: str,<br>backbone: <a title="small_data_metrics.cvml.VisionBackbone" href="cvml.html#small_data_metrics.cvml.VisionBackbone">VisionBackbone</a>,<br>rng: numpy.random._generator.Generator) ‑> tuple[<a title="small_data_metrics.newt.FeatureDataset" href="#small_data_metrics.newt.FeatureDataset">FeatureDataset</a>, <a title="small_data_metrics.newt.FeatureDataset" href="#small_data_metrics.newt.FeatureDataset">FeatureDataset</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
+@torch.no_grad()
+def get_splits_cvml(
+    cfg: config.Experiment,
+    task_name: str,
+    backbone: cvml.VisionBackbone,
+    rng: np.random.Generator,
+) -&gt; tuple[FeatureDataset, FeatureDataset]:
+    df = cfg.get_newt_df().with_row_index()
+
+    images_dir_name = &#34;newt2021_images&#34;
+    images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
+
+    img_transform = backbone.make_img_transform()
+    backbone = torch.compile(backbone.to(cfg.device))
+
+    task_df = df.filter(pl.col(&#34;task&#34;) == task_name)
+
+    cluster = task_df.item(row=0, column=&#34;task_cluster&#34;)
+    subcluster = task_df.item(row=0, column=&#34;task_subcluster&#34;)
+
+    # Split indices based on train/test split in the dataset using native Polars methods.
+    train_rows = (
+        task_df.filter(pl.col(&#34;split&#34;) == &#34;train&#34;)
+        .select(&#34;id&#34;, &#34;label&#34;)
+        .to_numpy(structured=True)
+    )
+    test_rows = (
+        task_df.filter(pl.col(&#34;split&#34;) != &#34;train&#34;)
+        .select(&#34;id&#34;, &#34;label&#34;)
+        .to_numpy(structured=True)
+    )
+
+    # Apply n_train and n_test limits if specified
+    if cfg.n_train == 0:
+        train_rows = []
+        train_ids, train_labels = (), ()
+    elif cfg.n_train &gt; 0 and len(train_rows) &gt; cfg.n_train:
+        train_ids, train_labels = sample(
+            rng, train_rows[&#34;id&#34;], train_rows[&#34;label&#34;], cfg.n_train
+        )
+    else:
+        train_ids, train_labels = train_rows[&#34;id&#34;], train_rows[&#34;label&#34;]
+
+    test_ids, test_labels = test_rows[&#34;id&#34;], test_rows[&#34;label&#34;]
+
+    dataset = ImageDataset(
+        images_dir_path,
+        np.concatenate([train_ids, test_ids]),
+        np.concatenate([train_labels, test_labels]),
+        img_transform,
+    )
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=cfg.batch_size, num_workers=cfg.n_workers, shuffle=False
+    )
+
+    all_features, all_labels, all_ids = [], [], []
+    for batch in helpers.progress(dataloader, desc=task_name):
+        imgs = batch[&#34;img&#34;].to(cfg.device)
+
+        with torch.amp.autocast(&#34;cuda&#34;):
+            features = backbone.img_encode(imgs).img_features
+            features = torch.nn.functional.normalize(features, dim=-1)
+            all_features.append(features.cpu())
+
+        all_ids.extend(batch[&#34;img_id&#34;])
+        all_labels.extend(batch[&#34;label&#34;])
+
+    all_features = torch.cat(all_features, dim=0).cpu()
+    all_labels = torch.tensor(all_labels)
+
+    n_train = len(train_ids)
+    n_test = len(test_ids)
+    assert n_train + n_test == len(all_ids)
+
+    train_dataset = FeatureDataset(
+        all_ids[:n_train],
+        all_features[:n_train],
+        all_labels[:n_train],
+        task=task_name,
+        cluster=cluster,
+        subcluster=subcluster,
+    )
+    test_dataset = FeatureDataset(
+        all_ids[n_train:],
+        all_features[n_train:],
+        all_labels[n_train:],
+        task=task_name,
+        cluster=cluster,
+        subcluster=subcluster,
+    )
+
+    return train_dataset, test_dataset</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.get_splits_mllm"><code class="name flex">
+<span>def <span class="ident">get_splits_mllm</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>task_name: str) ‑> tuple[<a title="small_data_metrics.newt.DatasetMllm" href="#small_data_metrics.newt.DatasetMllm">DatasetMllm</a>, <a title="small_data_metrics.newt.DatasetMllm" href="#small_data_metrics.newt.DatasetMllm">DatasetMllm</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
+def get_splits_mllm(
+    cfg: config.Experiment, task_name: str
+) -&gt; tuple[DatasetMllm, DatasetMllm]:
+    &#34;&#34;&#34;Gets the train/test splits for MLLM benchmarking.
+
+    Args:
+        cfg: Experiment configuration.
+        task_name: Specific NeWT task.
+
+    Returns:
+        Iterator of (train_dataset, test_dataset) pairs.
+
+    Raises:
+        RuntimeError: If the NeWT dataset is not found at the specified path.
+    &#34;&#34;&#34;
+    df = cfg.get_newt_df().with_row_index()
+
+    images_dir_name = &#34;newt2021_images&#34;
+    images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
+
+    task_df = df.filter(pl.col(&#34;task&#34;) == task_name)
+
+    # Get the cluster and sub-cluster for this task
+    cluster = task_df.item(row=0, column=&#34;task_cluster&#34;)
+    subcluster = task_df.item(row=0, column=&#34;task_subcluster&#34;)
+
+    task_idx = task_df.get_column(&#34;index&#34;).to_numpy()
+    is_train = task_df.select(pl.col(&#34;split&#34;) == &#34;train&#34;).get_column(&#34;split&#34;).to_numpy()
+
+    train_dataset = DatasetMllm(
+        task=task_name,
+        cluster=cluster,
+        subcluster=subcluster,
+        indices=task_idx[is_train],
+        root=images_dir_path,
+        df=df,
+        is_train=True,
+    )
+
+    test_dataset = DatasetMllm(
+        task=task_name,
+        cluster=cluster,
+        subcluster=subcluster,
+        indices=task_idx[~is_train],
+        root=images_dir_path,
+        df=df,
+        is_train=False,
+    )
+
+    return train_dataset, test_dataset</code></pre>
+</details>
+<div class="desc"><p>Gets the train/test splits for MLLM benchmarking.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>cfg</code></strong></dt>
+<dd>Experiment configuration.</dd>
+<dt><strong><code>task_name</code></strong></dt>
+<dd>Specific NeWT task.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Iterator of (train_dataset, test_dataset) pairs.</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>RuntimeError</code></dt>
+<dd>If the NeWT dataset is not found at the specified path.</dd>
+</dl></div>
+</dd>
+<dt id="small_data_metrics.newt.get_task_names"><code class="name flex">
+<span>def <span class="ident">get_task_names</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>) ‑> list[str]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_task_names(cfg: config.Experiment) -&gt; list[str]:
+    df = cfg.get_newt_df()
+    filtered_tasks = []
+    for task in df.get_column(&#34;task&#34;).unique().to_list():
+        task_df = df.filter(pl.col(&#34;task&#34;) == task)
+        cluster = task_df.item(row=0, column=&#34;task_cluster&#34;)
+        subcluster = task_df.item(row=0, column=&#34;task_subcluster&#34;)
+        if _include_task(cfg.newt, task, cluster, subcluster):
+            filtered_tasks.append(task)
+    return filtered_tasks</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.init_svc"><code class="name flex">
+<span>def <span class="ident">init_svc</span></span>(<span>n_train: int)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def init_svc(n_train: int):
+    &#34;&#34;&#34;Create a new, randomly initialized SVM with a random hyperparameter search over kernel, C and gamma. It uses only 16 jobs in parallel to prevent overloading the CPUs on a shared machine.&#34;&#34;&#34;
+    if n_train &lt; 10:
+        return sklearn.pipeline.make_pipeline(
+            sklearn.svm.SVC(kernel=&#34;linear&#34;),
+        )
+
+    return sklearn.model_selection.RandomizedSearchCV(
+        sklearn.pipeline.make_pipeline(
+            sklearn.preprocessing.StandardScaler(),
+            sklearn.svm.SVC(C=0.1, kernel=&#34;linear&#34;),
+        ),
+        {
+            &#34;svc__C&#34;: scipy.stats.loguniform(a=1e-3, b=1e1),
+            &#34;svc__kernel&#34;: [&#34;rbf&#34;, &#34;linear&#34;, &#34;sigmoid&#34;, &#34;poly&#34;],
+            &#34;svc__gamma&#34;: scipy.stats.loguniform(a=1e-4, b=1e-3),
+        },
+        n_iter=100,
+        n_jobs=16,
+        random_state=42,
+    )</code></pre>
+</details>
+<div class="desc"><p>Create a new, randomly initialized SVM with a random hyperparameter search over kernel, C and gamma. It uses only 16 jobs in parallel to prevent overloading the CPUs on a shared machine.</p></div>
+</dd>
+<dt id="small_data_metrics.newt.l2_normalize"><code class="name flex">
+<span>def <span class="ident">l2_normalize</span></span>(<span>features: jaxtyping.Float[ndarray, 'batch dim']) ‑> jaxtyping.Float[ndarray, 'batch dim']</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
+def l2_normalize(
+    features: Float[np.ndarray, &#34;batch dim&#34;],
+) -&gt; Float[np.ndarray, &#34;batch dim&#34;]:
+    &#34;&#34;&#34;Normalizes a batch of vectors to have L2 unit norm.&#34;&#34;&#34;
+    norms = np.linalg.norm(features, ord=2, axis=1, keepdims=True)
+    return features / norms</code></pre>
+</details>
+<div class="desc"><p>Normalizes a batch of vectors to have L2 unit norm.</p></div>
+</dd>
+<dt id="small_data_metrics.newt.sample"><code class="name flex">
+<span>def <span class="ident">sample</span></span>(<span>rng: numpy.random._generator.Generator,<br>img_ids: jaxtyping.Shaped[ndarray, 'm'],<br>labels: jaxtyping.Int[ndarray, 'm'],<br>n: int) ‑> tuple[jaxtyping.Shaped[ndarray, 'n'], jaxtyping.Int[ndarray, 'n']]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
+def sample(
+    rng: np.random.Generator,
+    img_ids: Shaped[np.ndarray, &#34; m&#34;],
+    labels: Int[np.ndarray, &#34; m&#34;],
+    n: int,
+) -&gt; tuple[Shaped[np.ndarray, &#34; n&#34;], Int[np.ndarray, &#34; n&#34;]]:
+    &#34;&#34;&#34;Sample a balanced subset of data points.
+
+    Args:
+        rng: Random number generator.
+        img_ids: Array of image IDs.
+        labels: Array of binary labels.
+        n: Number of samples to return.
+
+    Returns:
+        A tuple of (sampled_img_ids, sampled_labels).
+
+    Raises:
+        AssertionError: If labels are not binary (0 or 1).
+    &#34;&#34;&#34;
+    assert max(labels) == 1
+    assert min(labels) == 0
+
+    n0 = n // 2
+    n1 = n - n0
+
+    # Get indices for each class
+    i0 = np.where(labels == 0)[0]
+    i1 = np.where(labels == 1)[0]
+
+    # Randomly select the required number of samples from each class
+    i0 = rng.choice(i0, size=n0, replace=False)
+    i1 = rng.choice(i1, size=n1, replace=False)
+
+    # Combine the indices
+    i = np.concatenate([i0, i1])
+
+    # Shuffle the combined indices to avoid having all class 0 samples followed by all class 1 samples
+    np.random.shuffle(i)
+
+    # Return the balanced subset
+    return img_ids[i], labels[i]</code></pre>
+</details>
+<div class="desc"><p>Sample a balanced subset of data points.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>rng</code></strong></dt>
+<dd>Random number generator.</dd>
+<dt><strong><code>img_ids</code></strong></dt>
+<dd>Array of image IDs.</dd>
+<dt><strong><code>labels</code></strong></dt>
+<dd>Array of binary labels.</dd>
+<dt><strong><code>n</code></strong></dt>
+<dd>Number of samples to return.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>A tuple of (sampled_img_ids, sampled_labels).</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>AssertionError</code></dt>
+<dd>If labels are not binary (0 or 1).</dd>
+</dl></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="small_data_metrics.newt.DatasetMllm"><code class="flex name class">
+<span>class <span class="ident">DatasetMllm</span></span>
+<span>(</span><span>task: str,<br>cluster: str,<br>subcluster: str | None,<br>indices: jaxtyping.Integer[ndarray, 'n_samples'],<br>root: str,<br>df: polars.dataframe.frame.DataFrame,<br>is_train: bool)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
+class DatasetMllm(torch.utils.data.Dataset):
+    &#34;&#34;&#34;A dataset that returns SampleMllms for a specific task.
+
+    This dataset can be instantiated as either a training or test dataset.
+
+    This dataset presents a clean 0-n indexing interface while internally
+    mapping to the appropriate indices in the full dataset.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        task: str,
+        cluster: str,
+        subcluster: str | None,
+        indices: Integer[np.ndarray, &#34; n_samples&#34;],
+        root: str,
+        df: pl.DataFrame,
+        is_train: bool,
+    ):
+        &#34;&#34;&#34;Initialize the dataset with task information and indices.
+
+        Args:
+            task: Name of the classification task.
+            cluster: Cluster the task belongs to.
+            subcluster: Sub-cluster the task belongs to (may be None).
+            indices: Array of indices into the full dataset.
+            root: Root directory containing the images.
+            df: DataFrame containing metadata for all samples.
+            is_train: Whether this is a training dataset.
+        &#34;&#34;&#34;
+        self.task = task
+        self.cluster = cluster
+        self.subcluster = subcluster
+        self.indices = indices
+        self.root = root
+        self.df = df
+        self.is_train = is_train
+
+        # Store the full dataset information
+        self.img_ids = self.df.get_column(&#34;id&#34;).to_list()
+        self.labels = self.df.get_column(&#34;label&#34;).to_list()
+        self.tasks = self.df.get_column(&#34;task&#34;).to_list()
+
+        # Create task-specific dataframes for efficient access
+        self.task_df = self.df.filter(pl.col(&#34;task&#34;) == self.task)
+
+    def __repr__(self) -&gt; str:
+        &#34;&#34;&#34;Get a string representation of the dataset.
+
+        Returns:
+            A string describing the dataset.
+        &#34;&#34;&#34;
+        split = &#34;train&#34; if self.is_train else &#34;test&#34;
+        return f&#34;DatasetMllm(task={self.task}, cluster={self.cluster}, split={split}, n_samples={len(self.indices)})&#34;
+
+    def __getitem__(self, i: int) -&gt; SampleMllm:
+        &#34;&#34;&#34;Get a sample by its index in this dataset (0 to len-1).
+
+        Internally maps to the correct index in the full dataset.
+
+        Args:
+            i: Index of the sample to retrieve.
+
+        Returns:
+            A SampleMllm object.
+
+        Raises:
+            IndexError: If the index is out of bounds.
+        &#34;&#34;&#34;
+        if i &gt;= len(self.indices):
+            raise IndexError(
+                f&#34;Index {i} out of bounds for dataset with {len(self.indices)} samples&#34;
+            )
+
+        # Map the local index to the global index
+        global_idx = self.indices[i]
+
+        img_id = self.img_ids[global_idx]
+        label = self.labels[global_idx]
+        task = self.tasks[global_idx]
+
+        classnames = tuple(text_label_to_classname[task].keys())
+        img_b64 = helpers.load_img_b64(os.path.join(self.root, f&#34;{img_id}.jpg&#34;))
+
+        return SampleMllm(
+            img_id,
+            img_b64,
+            label,
+            classnames,
+        )
+
+    def __len__(self) -&gt; int:
+        &#34;&#34;&#34;Return the number of samples in this dataset.&#34;&#34;&#34;
+        return len(self.indices)</code></pre>
+</details>
+<div class="desc"><p>A dataset that returns SampleMllms for a specific task.</p>
+<p>This dataset can be instantiated as either a training or test dataset.</p>
+<p>This dataset presents a clean 0-n indexing interface while internally
+mapping to the appropriate indices in the full dataset.</p>
+<p>Initialize the dataset with task information and indices.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>task</code></strong></dt>
+<dd>Name of the classification task.</dd>
+<dt><strong><code>cluster</code></strong></dt>
+<dd>Cluster the task belongs to.</dd>
+<dt><strong><code>subcluster</code></strong></dt>
+<dd>Sub-cluster the task belongs to (may be None).</dd>
+<dt><strong><code>indices</code></strong></dt>
+<dd>Array of indices into the full dataset.</dd>
+<dt><strong><code>root</code></strong></dt>
+<dd>Root directory containing the images.</dd>
+<dt><strong><code>df</code></strong></dt>
+<dd>DataFrame containing metadata for all samples.</dd>
+<dt><strong><code>is_train</code></strong></dt>
+<dd>Whether this is a training dataset.</dd>
+</dl></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.utils.data.dataset.Dataset</li>
+<li>typing.Generic</li>
+</ul>
+</dd>
+<dt id="small_data_metrics.newt.FeatureDataset"><code class="flex name class">
+<span>class <span class="ident">FeatureDataset</span></span>
+<span>(</span><span>img_ids: list[str],<br>x: jaxtyping.Float[Tensor, 'n dim'],<br>y: jaxtyping.Int[Tensor, 'n'],<br>task: str,<br>cluster: str,<br>subcluster: str | None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
+@dataclasses.dataclass(frozen=True)
+class FeatureDataset:
+    &#34;&#34;&#34;A dataset of feature vectors extracted from images.
+
+    Attributes:
+        img_ids: List of image IDs.
+        x: Tensor of feature vectors.
+        y: Tensor of binary labels.
+        task: Name of the classification task.
+        cluster: Cluster the task belongs to.
+        subcluster: Sub-cluster the task belongs to (may be None).
+    &#34;&#34;&#34;
+
+    img_ids: list[str]
+    x: Float[Tensor, &#34;n dim&#34;]
+    y: Int[Tensor, &#34; n&#34;]
+
+    task: str
+    cluster: str
+    subcluster: str | None
+
+    def __getitem__(self, i: int) -&gt; FeatureSample:
+        &#34;&#34;&#34;Get a feature sample by its index.
+
+        Args:
+            i: Index of the sample to retrieve.
+
+        Returns:
+            A dictionary containing the image ID, feature vector, and label.
+        &#34;&#34;&#34;
+        return {&#34;img_id&#34;: self.img_ids[i], &#34;x&#34;: self.x[i], &#34;y&#34;: self.y[i]}</code></pre>
+</details>
+<div class="desc"><p>A dataset of feature vectors extracted from images.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>img_ids</code></strong></dt>
+<dd>List of image IDs.</dd>
+<dt><strong><code>x</code></strong></dt>
+<dd>Tensor of feature vectors.</dd>
+<dt><strong><code>y</code></strong></dt>
+<dd>Tensor of binary labels.</dd>
+<dt><strong><code>task</code></strong></dt>
+<dd>Name of the classification task.</dd>
+<dt><strong><code>cluster</code></strong></dt>
+<dd>Cluster the task belongs to.</dd>
+<dt><strong><code>subcluster</code></strong></dt>
+<dd>Sub-cluster the task belongs to (may be None).</dd>
+</dl></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="small_data_metrics.newt.FeatureDataset.cluster"><code class="name">var <span class="ident">cluster</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.FeatureDataset.img_ids"><code class="name">var <span class="ident">img_ids</span> : list[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.FeatureDataset.subcluster"><code class="name">var <span class="ident">subcluster</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.FeatureDataset.task"><code class="name">var <span class="ident">task</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.FeatureDataset.x"><code class="name">var <span class="ident">x</span> : jaxtyping.Float[Tensor, 'n dim']</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.FeatureDataset.y"><code class="name">var <span class="ident">y</span> : jaxtyping.Int[Tensor, 'n']</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="small_data_metrics.newt.FeatureSample"><code class="flex name class">
+<span>class <span class="ident">FeatureSample</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@beartype.beartype
+class FeatureSample(typing.TypedDict):
+    &#34;&#34;&#34;A dictionary representing a feature sample with its metadata.
+
+    Attributes:
+        img_id: Unique identifier for the image.
+        x: Feature vector extracted from the image.
+        y: Binary class label (0 or 1) for the image.
+    &#34;&#34;&#34;
+
+    img_id: str
+    x: Float[Tensor, &#34; d&#34;]
+    y: Int[Tensor, &#34;&#34;]</code></pre>
+</details>
+<div class="desc"><p>A dictionary representing a feature sample with its metadata.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>img_id</code></strong></dt>
+<dd>Unique identifier for the image.</dd>
+<dt><strong><code>x</code></strong></dt>
+<dd>Feature vector extracted from the image.</dd>
+<dt><strong><code>y</code></strong></dt>
+<dd>Binary class label (0 or 1) for the image.</dd>
+</dl></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.dict</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="small_data_metrics.newt.FeatureSample.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.FeatureSample.x"><code class="name">var <span class="ident">x</span> : jaxtyping.Float[Tensor, 'd']</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.FeatureSample.y"><code class="name">var <span class="ident">y</span> : jaxtyping.Int[Tensor, '']</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="small_data_metrics.newt.ImageDataset"><code class="flex name class">
+<span>class <span class="ident">ImageDataset</span></span>
+<span>(</span><span>root: str,<br>img_ids: jaxtyping.Shaped[ndarray, 'n'],<br>labels: jaxtyping.Int[ndarray, 'n'],<br>transform=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
+class ImageDataset(torch.utils.data.Dataset):
+    &#34;&#34;&#34;A dataset that returns ImageSample dictionaries.&#34;&#34;&#34;
+
+    def __init__(
+        self,
+        root: str,
+        img_ids: Shaped[np.ndarray, &#34; n&#34;],
+        labels: Int[np.ndarray, &#34; n&#34;],
+        transform=None,
+    ):
+        &#34;&#34;&#34;Initialize the dataset with image paths and labels.
+
+        Args:
+            root: Root directory containing the images.
+            img_ids: Array of image IDs.
+            labels: Array of binary labels corresponding to the images.
+            transform: Optional transform to apply to the images.
+        &#34;&#34;&#34;
+        self.transform = transform
+        self.root = root
+        self.img_ids = img_ids
+        self.labels = labels
+
+    def __getitem__(self, i: int) -&gt; ImageSample:
+        &#34;&#34;&#34;Get a sample by its index.
+
+        Args:
+            i: Index of the sample to retrieve.
+
+        Returns:
+            A dictionary containing the image ID, image tensor, and label.
+        &#34;&#34;&#34;
+        img_id = self.img_ids[i]
+        img = Image.open(os.path.join(self.root, f&#34;{img_id}.jpg&#34;))
+        if self.transform is not None:
+            img = self.transform(img)
+        label = self.labels[i]
+        return {&#34;img_id&#34;: img_id, &#34;img&#34;: img, &#34;label&#34;: label}
+
+    def __len__(self) -&gt; int:
+        &#34;&#34;&#34;Return the number of samples in the dataset.
+
+        Returns:
+            The number of samples.
+        &#34;&#34;&#34;
+        return len(self.img_ids)</code></pre>
+</details>
+<div class="desc"><p>A dataset that returns ImageSample dictionaries.</p>
+<p>Initialize the dataset with image paths and labels.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>root</code></strong></dt>
+<dd>Root directory containing the images.</dd>
+<dt><strong><code>img_ids</code></strong></dt>
+<dd>Array of image IDs.</dd>
+<dt><strong><code>labels</code></strong></dt>
+<dd>Array of binary labels corresponding to the images.</dd>
+<dt><strong><code>transform</code></strong></dt>
+<dd>Optional transform to apply to the images.</dd>
+</dl></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.utils.data.dataset.Dataset</li>
+<li>typing.Generic</li>
+</ul>
+</dd>
+<dt id="small_data_metrics.newt.ImageSample"><code class="flex name class">
+<span>class <span class="ident">ImageSample</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@jaxtyped(typechecker=beartype.beartype)
+class ImageSample(typing.TypedDict):
+    &#34;&#34;&#34;A dictionary representing a single image sample with its metadata.
+
+    Attributes:
+        img_id: Unique identifier for the image.
+        img: The image tensor with shape [3, width, height] (RGB channels first).
+        label: Binary class label (0 or 1) for the image.
+    &#34;&#34;&#34;
+
+    img_id: str
+    img: Float[Tensor, &#34;3 width height&#34;]
+    label: Int[Tensor, &#34;&#34;]</code></pre>
+</details>
+<div class="desc"><p>A dictionary representing a single image sample with its metadata.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>img_id</code></strong></dt>
+<dd>Unique identifier for the image.</dd>
+<dt><strong><code>img</code></strong></dt>
+<dd>The image tensor with shape [3, width, height] (RGB channels first).</dd>
+<dt><strong><code>label</code></strong></dt>
+<dd>Binary class label (0 or 1) for the image.</dd>
+</dl></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.dict</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="small_data_metrics.newt.ImageSample.img"><code class="name">var <span class="ident">img</span> : jaxtyping.Float[Tensor, '3 width height']</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.ImageSample.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.ImageSample.label"><code class="name">var <span class="ident">label</span> : jaxtyping.Int[Tensor, '']</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="small_data_metrics.newt.SampleMllm"><code class="flex name class">
+<span>class <span class="ident">SampleMllm</span></span>
+<span>(</span><span>img_id: str, img_b64: str, label: int, classnames: tuple[str, str])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@beartype.beartype
+@dataclasses.dataclass(frozen=True)
+class SampleMllm:
+    &#34;&#34;&#34;A sample for multimodal language model evaluation.
+
+    Attributes:
+        img_id: Unique identifier for the image.
+        img_b64: Base64-encoded image data.
+        label: Binary class label (0 or 1).
+        classnames: Tuple of class names corresponding to labels 0 and 1.
+    &#34;&#34;&#34;
+
+    img_id: str
+    img_b64: str
+    label: int
+
+    # TODO: these classnames are not being translated correctly.
+    classnames: tuple[str, str]
+
+    @property
+    def classname(self) -&gt; str:
+        &#34;&#34;&#34;Get the class name corresponding to this sample&#39;s label.
+
+        Returns:
+            The class name as a string.
+        &#34;&#34;&#34;
+        return self.classnames[self.label]
+
+    def make_user(self, rng: random.Random) -&gt; str:
+        &#34;&#34;&#34;Create a user prompt for the MLLM.
+
+        Args:
+            rng: Random number generator for randomizing prompt order.
+
+        Returns:
+            A string prompt asking the model to classify the image.
+        &#34;&#34;&#34;
+        a, b = self.classnames
+        if rng.random() &gt; 0.5:
+            a, b = b, a
+        return f&#34;What is this a picture of, &#39;{a}&#39; or &#39;{b}&#39;? Respond with your answer in bold.&#34;
+
+    @property
+    def assistant(self) -&gt; str:
+        &#34;&#34;&#34;Get the expected assistant response for this sample.
+
+        Returns:
+            A string containing the expected response with the correct class name.
+        &#34;&#34;&#34;
+        return f&#34;**{self.classname}**&#34;
+
+    def parse_assistant(self, assistant: str) -&gt; tuple[int, bool]:
+        &#34;&#34;&#34;Returns a label, parsed to an integer. Also returns a boolean indicating whether parsing was successful.&#34;&#34;&#34;
+        pattern = re.compile(r&#34;\*\*(.*)\*\*&#34;)
+        match = pattern.match(assistant)
+        if match:
+            # Return the closest classname in bold.
+            pred = difflib.get_close_matches(
+                match.group(1), self.classnames, cutoff=0.0
+            )[0]
+            successful = True
+        else:
+            # Get the closest classname.
+            pred = difflib.get_close_matches(assistant, self.classnames, cutoff=0.0)[0]
+            successful = False
+
+        for i, classname in enumerate(self.classnames):
+            if classname == pred:
+                return (i, successful)
+
+        logger.warning(
+            &#34;Something is wrong in %s.parse_assistant.&#34;, self.__class__.__name__
+        )
+        return (0, False)
+
+    def to_example(self, rng: random.Random) -&gt; mllms.Example:
+        &#34;&#34;&#34;Convert this sample to an MLLM example.
+
+        Args:
+            rng: Random number generator for randomizing prompt order.
+
+        Returns:
+            An Example object containing the image, user prompt, and expected response.
+        &#34;&#34;&#34;
+        return mllms.Example(
+            img_b64=self.img_b64,
+            user=self.make_user(rng),
+            assistant=self.assistant,
+        )</code></pre>
+</details>
+<div class="desc"><p>A sample for multimodal language model evaluation.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>img_id</code></strong></dt>
+<dd>Unique identifier for the image.</dd>
+<dt><strong><code>img_b64</code></strong></dt>
+<dd>Base64-encoded image data.</dd>
+<dt><strong><code>label</code></strong></dt>
+<dd>Binary class label (0 or 1).</dd>
+<dt><strong><code>classnames</code></strong></dt>
+<dd>Tuple of class names corresponding to labels 0 and 1.</dd>
+</dl></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="small_data_metrics.newt.SampleMllm.classnames"><code class="name">var <span class="ident">classnames</span> : tuple[str, str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.SampleMllm.img_b64"><code class="name">var <span class="ident">img_b64</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.SampleMllm.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="small_data_metrics.newt.SampleMllm.label"><code class="name">var <span class="ident">label</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="small_data_metrics.newt.SampleMllm.assistant"><code class="name">prop <span class="ident">assistant</span> : str</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def assistant(self) -&gt; str:
+    &#34;&#34;&#34;Get the expected assistant response for this sample.
+
+    Returns:
+        A string containing the expected response with the correct class name.
+    &#34;&#34;&#34;
+    return f&#34;**{self.classname}**&#34;</code></pre>
+</details>
+<div class="desc"><p>Get the expected assistant response for this sample.</p>
+<h2 id="returns">Returns</h2>
+<p>A string containing the expected response with the correct class name.</p></div>
+</dd>
+<dt id="small_data_metrics.newt.SampleMllm.classname"><code class="name">prop <span class="ident">classname</span> : str</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def classname(self) -&gt; str:
+    &#34;&#34;&#34;Get the class name corresponding to this sample&#39;s label.
+
+    Returns:
+        The class name as a string.
+    &#34;&#34;&#34;
+    return self.classnames[self.label]</code></pre>
+</details>
+<div class="desc"><p>Get the class name corresponding to this sample's label.</p>
+<h2 id="returns">Returns</h2>
+<p>The class name as a string.</p></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="small_data_metrics.newt.SampleMllm.make_user"><code class="name flex">
+<span>def <span class="ident">make_user</span></span>(<span>self, rng: random.Random) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def make_user(self, rng: random.Random) -&gt; str:
+    &#34;&#34;&#34;Create a user prompt for the MLLM.
+
+    Args:
+        rng: Random number generator for randomizing prompt order.
+
+    Returns:
+        A string prompt asking the model to classify the image.
+    &#34;&#34;&#34;
+    a, b = self.classnames
+    if rng.random() &gt; 0.5:
+        a, b = b, a
+    return f&#34;What is this a picture of, &#39;{a}&#39; or &#39;{b}&#39;? Respond with your answer in bold.&#34;</code></pre>
+</details>
+<div class="desc"><p>Create a user prompt for the MLLM.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>rng</code></strong></dt>
+<dd>Random number generator for randomizing prompt order.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>A string prompt asking the model to classify the image.</p></div>
+</dd>
+<dt id="small_data_metrics.newt.SampleMllm.parse_assistant"><code class="name flex">
+<span>def <span class="ident">parse_assistant</span></span>(<span>self, assistant: str) ‑> tuple[int, bool]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def parse_assistant(self, assistant: str) -&gt; tuple[int, bool]:
+    &#34;&#34;&#34;Returns a label, parsed to an integer. Also returns a boolean indicating whether parsing was successful.&#34;&#34;&#34;
+    pattern = re.compile(r&#34;\*\*(.*)\*\*&#34;)
+    match = pattern.match(assistant)
+    if match:
+        # Return the closest classname in bold.
+        pred = difflib.get_close_matches(
+            match.group(1), self.classnames, cutoff=0.0
+        )[0]
+        successful = True
+    else:
+        # Get the closest classname.
+        pred = difflib.get_close_matches(assistant, self.classnames, cutoff=0.0)[0]
+        successful = False
+
+    for i, classname in enumerate(self.classnames):
+        if classname == pred:
+            return (i, successful)
+
+    logger.warning(
+        &#34;Something is wrong in %s.parse_assistant.&#34;, self.__class__.__name__
+    )
+    return (0, False)</code></pre>
+</details>
+<div class="desc"><p>Returns a label, parsed to an integer. Also returns a boolean indicating whether parsing was successful.</p></div>
+</dd>
+<dt id="small_data_metrics.newt.SampleMllm.to_example"><code class="name flex">
+<span>def <span class="ident">to_example</span></span>(<span>self, rng: random.Random) ‑> <a title="small_data_metrics.mllms.Example" href="mllms.html#small_data_metrics.mllms.Example">Example</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_example(self, rng: random.Random) -&gt; mllms.Example:
+    &#34;&#34;&#34;Convert this sample to an MLLM example.
+
+    Args:
+        rng: Random number generator for randomizing prompt order.
+
+    Returns:
+        An Example object containing the image, user prompt, and expected response.
+    &#34;&#34;&#34;
+    return mllms.Example(
+        img_b64=self.img_b64,
+        user=self.make_user(rng),
+        assistant=self.assistant,
+    )</code></pre>
+</details>
+<div class="desc"><p>Convert this sample to an MLLM example.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>rng</code></strong></dt>
+<dd>Random number generator for randomizing prompt order.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>An Example object containing the image, user prompt, and expected response.</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="small_data_metrics" href="index.html">small_data_metrics</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="two-column">
+<li><code><a title="small_data_metrics.newt.eval_task_cvml" href="#small_data_metrics.newt.eval_task_cvml">eval_task_cvml</a></code></li>
+<li><code><a title="small_data_metrics.newt.eval_task_mllm" href="#small_data_metrics.newt.eval_task_mllm">eval_task_mllm</a></code></li>
+<li><code><a title="small_data_metrics.newt.get_splits_cvml" href="#small_data_metrics.newt.get_splits_cvml">get_splits_cvml</a></code></li>
+<li><code><a title="small_data_metrics.newt.get_splits_mllm" href="#small_data_metrics.newt.get_splits_mllm">get_splits_mllm</a></code></li>
+<li><code><a title="small_data_metrics.newt.get_task_names" href="#small_data_metrics.newt.get_task_names">get_task_names</a></code></li>
+<li><code><a title="small_data_metrics.newt.init_svc" href="#small_data_metrics.newt.init_svc">init_svc</a></code></li>
+<li><code><a title="small_data_metrics.newt.l2_normalize" href="#small_data_metrics.newt.l2_normalize">l2_normalize</a></code></li>
+<li><code><a title="small_data_metrics.newt.sample" href="#small_data_metrics.newt.sample">sample</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="small_data_metrics.newt.DatasetMllm" href="#small_data_metrics.newt.DatasetMllm">DatasetMllm</a></code></h4>
+</li>
+<li>
+<h4><code><a title="small_data_metrics.newt.FeatureDataset" href="#small_data_metrics.newt.FeatureDataset">FeatureDataset</a></code></h4>
+<ul class="two-column">
+<li><code><a title="small_data_metrics.newt.FeatureDataset.cluster" href="#small_data_metrics.newt.FeatureDataset.cluster">cluster</a></code></li>
+<li><code><a title="small_data_metrics.newt.FeatureDataset.img_ids" href="#small_data_metrics.newt.FeatureDataset.img_ids">img_ids</a></code></li>
+<li><code><a title="small_data_metrics.newt.FeatureDataset.subcluster" href="#small_data_metrics.newt.FeatureDataset.subcluster">subcluster</a></code></li>
+<li><code><a title="small_data_metrics.newt.FeatureDataset.task" href="#small_data_metrics.newt.FeatureDataset.task">task</a></code></li>
+<li><code><a title="small_data_metrics.newt.FeatureDataset.x" href="#small_data_metrics.newt.FeatureDataset.x">x</a></code></li>
+<li><code><a title="small_data_metrics.newt.FeatureDataset.y" href="#small_data_metrics.newt.FeatureDataset.y">y</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="small_data_metrics.newt.FeatureSample" href="#small_data_metrics.newt.FeatureSample">FeatureSample</a></code></h4>
+<ul class="">
+<li><code><a title="small_data_metrics.newt.FeatureSample.img_id" href="#small_data_metrics.newt.FeatureSample.img_id">img_id</a></code></li>
+<li><code><a title="small_data_metrics.newt.FeatureSample.x" href="#small_data_metrics.newt.FeatureSample.x">x</a></code></li>
+<li><code><a title="small_data_metrics.newt.FeatureSample.y" href="#small_data_metrics.newt.FeatureSample.y">y</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="small_data_metrics.newt.ImageDataset" href="#small_data_metrics.newt.ImageDataset">ImageDataset</a></code></h4>
+</li>
+<li>
+<h4><code><a title="small_data_metrics.newt.ImageSample" href="#small_data_metrics.newt.ImageSample">ImageSample</a></code></h4>
+<ul class="">
+<li><code><a title="small_data_metrics.newt.ImageSample.img" href="#small_data_metrics.newt.ImageSample.img">img</a></code></li>
+<li><code><a title="small_data_metrics.newt.ImageSample.img_id" href="#small_data_metrics.newt.ImageSample.img_id">img_id</a></code></li>
+<li><code><a title="small_data_metrics.newt.ImageSample.label" href="#small_data_metrics.newt.ImageSample.label">label</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="small_data_metrics.newt.SampleMllm" href="#small_data_metrics.newt.SampleMllm">SampleMllm</a></code></h4>
+<ul class="two-column">
+<li><code><a title="small_data_metrics.newt.SampleMllm.assistant" href="#small_data_metrics.newt.SampleMllm.assistant">assistant</a></code></li>
+<li><code><a title="small_data_metrics.newt.SampleMllm.classname" href="#small_data_metrics.newt.SampleMllm.classname">classname</a></code></li>
+<li><code><a title="small_data_metrics.newt.SampleMllm.classnames" href="#small_data_metrics.newt.SampleMllm.classnames">classnames</a></code></li>
+<li><code><a title="small_data_metrics.newt.SampleMllm.img_b64" href="#small_data_metrics.newt.SampleMllm.img_b64">img_b64</a></code></li>
+<li><code><a title="small_data_metrics.newt.SampleMllm.img_id" href="#small_data_metrics.newt.SampleMllm.img_id">img_id</a></code></li>
+<li><code><a title="small_data_metrics.newt.SampleMllm.label" href="#small_data_metrics.newt.SampleMllm.label">label</a></code></li>
+<li><code><a title="small_data_metrics.newt.SampleMllm.make_user" href="#small_data_metrics.newt.SampleMllm.make_user">make_user</a></code></li>
+<li><code><a title="small_data_metrics.newt.SampleMllm.parse_assistant" href="#small_data_metrics.newt.SampleMllm.parse_assistant">parse_assistant</a></code></li>
+<li><code><a title="small_data_metrics.newt.SampleMllm.to_example" href="#small_data_metrics.newt.SampleMllm.to_example">to_example</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.5</a>.</p>
+</footer>
+</body>
+</html>

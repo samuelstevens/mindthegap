@@ -6,8 +6,7 @@
 #     "tyro",
 # ]
 # ///
-"""
-A script to download the NeWT dataset.
+"""A script to download the NeWT dataset.
 
 Run with:
 

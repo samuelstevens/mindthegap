@@ -23,5 +23,14 @@ dependencies = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["E", "F", "I", "D"]
 ignore = ["F722", "E402", "E501"]
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.5",
+]

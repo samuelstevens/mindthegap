@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
 <title>small_data_metrics.config API documentation</title>
-<meta name="description" content="">
+<meta name="description" content="Configuration management for small data metrics experiments …">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
@@ -38,6 +38,9 @@ el.replaceWith(d);
 <h1 class="title">Module <code>small_data_metrics.config</code></h1>
 </header>
 <section id="section-intro">
+<p>Configuration management for small data metrics experiments.</p>
+<p>This module provides dataclasses and utilities for loading, managing, and
+validating experiment configurations from TOML files.</p>
 </section>
 <section>
 </section>
@@ -55,8 +58,7 @@ el.replaceWith(d);
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def load(path: str) -&gt; list[Experiment]:
-    &#34;&#34;&#34;
-    Load experiments from a TOML file.
+    &#34;&#34;&#34;Load experiments from a TOML file.
 
     None of the fields in Experiment are lists, so anytime we find a list in the TOML, we add another dimension to our grid search over all possible experiments.
     &#34;&#34;&#34;
@@ -123,6 +125,11 @@ el.replaceWith(d);
 </summary>
 <pre><code class="python">@dataclasses.dataclass(frozen=True)
 class Experiment:
+    &#34;&#34;&#34;Configuration for a benchmark experiment.
+
+    This class defines all parameters needed to run a benchmark experiment, including model selection, dataset configuration, evaluation settings, and output preferences.
+    &#34;&#34;&#34;
+
     model: Model
 
     n_train: int = -1
@@ -170,10 +177,34 @@ class Experiment:
     newt_data: str = &#34;&#34;
     newt: Newt = dataclasses.field(default_factory=Newt)
 
+    def get_newt_df(self) -&gt; &#34;pl.DataFrame&#34;:
+        &#34;&#34;&#34;Load the NeWT dataset labels into a Polars DataFrame.
+
+        This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
+
+        Returns:
+            A Polars DataFrame containing the NeWT dataset labels and metadata.
+        &#34;&#34;&#34;
+        import polars as pl
+
+        labels_csv_path = os.path.join(self.newt_data, &#34;newt2021_labels.csv&#34;)
+
+        if not os.path.isfile(labels_csv_path):
+            msg = f&#34;Path &#39;{labels_csv_path}&#39; doesn&#39;t exist. Did you download the Newt dataset?&#34;
+            raise RuntimeError(msg)
+
+        return pl.read_csv(labels_csv_path)
+
     def to_dict(self) -&gt; dict[str, object]:
+        &#34;&#34;&#34;Convert the experiment configuration to a dictionary.
+
+        Returns:
+            A dictionary representation of all configuration parameters.
+        &#34;&#34;&#34;
         return dataclasses.asdict(self)</code></pre>
 </details>
-<div class="desc"><p>Experiment(model: small_data_metrics.config.Model, n_train: int = -1, n_test: int = -1, sampling: Literal['uniform', 'balanced'] = 'uniform', device: Literal['cpu', 'mps', 'cuda'] = 'cuda', debug: bool = False, ssl: bool = True, report_to: str = './results', graph: bool = True, graph_to: str = './graphs', log_to: str = './logs', temp: float = 0.0, prompting: Literal['single', 'multi'] = 'single', cot_enabled: bool = False, parallel: int = 1, slurm: bool = False, slurm_acct: str = '', batch_size: int = 256, n_workers: int = 8, seed: int = 17, newt_data: str = '', newt: small_data_metrics.config.Newt = <factory>)</p></div>
+<div class="desc"><p>Configuration for a benchmark experiment.</p>
+<p>This class defines all parameters needed to run a benchmark experiment, including model selection, dataset configuration, evaluation settings, and output preferences.</p></div>
 <h3>Class variables</h3>
 <dl>
 <dt id="small_data_metrics.config.Experiment.batch_size"><code class="name">var <span class="ident">batch_size</span> : int</code></dt>
@@ -267,6 +298,37 @@ class Experiment:
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="small_data_metrics.config.Experiment.get_newt_df"><code class="name flex">
+<span>def <span class="ident">get_newt_df</span></span>(<span>self) ‑> pl.DataFrame</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_newt_df(self) -&gt; &#34;pl.DataFrame&#34;:
+    &#34;&#34;&#34;Load the NeWT dataset labels into a Polars DataFrame.
+
+    This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
+
+    Returns:
+        A Polars DataFrame containing the NeWT dataset labels and metadata.
+    &#34;&#34;&#34;
+    import polars as pl
+
+    labels_csv_path = os.path.join(self.newt_data, &#34;newt2021_labels.csv&#34;)
+
+    if not os.path.isfile(labels_csv_path):
+        msg = f&#34;Path &#39;{labels_csv_path}&#39; doesn&#39;t exist. Did you download the Newt dataset?&#34;
+        raise RuntimeError(msg)
+
+    return pl.read_csv(labels_csv_path)</code></pre>
+</details>
+<div class="desc"><p>Load the NeWT dataset labels into a Polars DataFrame.</p>
+<p>This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.</p>
+<h2 id="returns">Returns</h2>
+<p>A Polars DataFrame containing the NeWT dataset labels and metadata.</p></div>
+</dd>
 <dt id="small_data_metrics.config.Experiment.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self) ‑> dict[str, object]</span>
 </code></dt>
@@ -276,9 +338,16 @@ class Experiment:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def to_dict(self) -&gt; dict[str, object]:
+    &#34;&#34;&#34;Convert the experiment configuration to a dictionary.
+
+    Returns:
+        A dictionary representation of all configuration parameters.
+    &#34;&#34;&#34;
     return dataclasses.asdict(self)</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Convert the experiment configuration to a dictionary.</p>
+<h2 id="returns">Returns</h2>
+<p>A dictionary representation of all configuration parameters.</p></div>
 </dd>
 </dl>
 </dd>
@@ -293,11 +362,31 @@ class Experiment:
 </summary>
 <pre><code class="python">@dataclasses.dataclass(frozen=True)
 class Model:
+    &#34;&#34;&#34;Configuration for a model to be evaluated.
+
+    This class defines the essential parameters needed to identify and load a specific model for evaluation in the benchmark.
+
+    Attributes:
+        method: The type of model - either &#34;cvml&#34; (computer vision model) or &#34;mllm&#34; (multimodal language model).
+        org: Organization or source of the model (e.g., &#34;openai&#34;, &#34;google&#34;, &#34;openrouter&#34;).
+        ckpt: Checkpoint or specific model identifier (e.g., &#34;gpt-4o&#34;, &#34;gemini-2.0-flash&#34;).
+    &#34;&#34;&#34;
+
     method: typing.Literal[&#34;cvml&#34;, &#34;mllm&#34;]
     org: str
     ckpt: str</code></pre>
 </details>
-<div class="desc"><p>Model(method: Literal['cvml', 'mllm'], org: str, ckpt: str)</p></div>
+<div class="desc"><p>Configuration for a model to be evaluated.</p>
+<p>This class defines the essential parameters needed to identify and load a specific model for evaluation in the benchmark.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>method</code></strong></dt>
+<dd>The type of model - either "cvml" (computer vision model) or "mllm" (multimodal language model).</dd>
+<dt><strong><code>org</code></strong></dt>
+<dd>Organization or source of the model (e.g., "openai", "google", "openrouter").</dd>
+<dt><strong><code>ckpt</code></strong></dt>
+<dd>Checkpoint or specific model identifier (e.g., "gpt-4o", "gemini-2.0-flash").</dd>
+</dl></div>
 <h3>Class variables</h3>
 <dl>
 <dt id="small_data_metrics.config.Model.ckpt"><code class="name">var <span class="ident">ckpt</span> : str</code></dt>
@@ -402,6 +491,7 @@ class Newt:
 <li><code><a title="small_data_metrics.config.Experiment.cot_enabled" href="#small_data_metrics.config.Experiment.cot_enabled">cot_enabled</a></code></li>
 <li><code><a title="small_data_metrics.config.Experiment.debug" href="#small_data_metrics.config.Experiment.debug">debug</a></code></li>
 <li><code><a title="small_data_metrics.config.Experiment.device" href="#small_data_metrics.config.Experiment.device">device</a></code></li>
+<li><code><a title="small_data_metrics.config.Experiment.get_newt_df" href="#small_data_metrics.config.Experiment.get_newt_df">get_newt_df</a></code></li>
 <li><code><a title="small_data_metrics.config.Experiment.graph" href="#small_data_metrics.config.Experiment.graph">graph</a></code></li>
 <li><code><a title="small_data_metrics.config.Experiment.graph_to" href="#small_data_metrics.config.Experiment.graph_to">graph_to</a></code></li>
 <li><code><a title="small_data_metrics.config.Experiment.log_to" href="#small_data_metrics.config.Experiment.log_to">log_to</a></code></li>
