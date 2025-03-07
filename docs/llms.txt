@@ -10,105 +10,6 @@ cvml.register_vision_backbone("open-clip", third_party_models.OpenClip)
 
 ```
 
-# small_data_metrics/cvml.py
-
-```python
-"""Stores all vision backbones.
-
-Users can register new custom backbones from their code to evaluate on biobench using `register_vision_backbone`.
-As long as it satisfies the `biobench.cvml.VisionBackbone` interface, it will work will all tasks.
-
-.. include:: ./tutorial.md
-"""
-
-import dataclasses
-import logging
-
-import beartype
-import torch
-from jaxtyping import Float, jaxtyped
-from torch import Tensor
-
-from . import config
-
-logger = logging.getLogger(__name__)
-
-
-@jaxtyped(typechecker=beartype.beartype)
-@dataclasses.dataclass(frozen=True)
-class EncodedImgBatch:
-    """The output of a `VisionBackbone`'s `VisionBackbone.img_encode()` method."""
-
-    img_features: Float[Tensor, "batch img_dim"]
-    """Image-level features. Each image is represented by a single vector."""
-    patch_features: Float[Tensor, "batch n_patches patch_dim"] | None
-    """Patch-level features. Only ViTs have patch-level features. These features might be a different dimension that the image features because of projection heads or such."""
-
-
-@jaxtyped(typechecker=beartype.beartype)
-class VisionBackbone(torch.nn.Module):
-    """A frozen vision model that embeds batches of images into batches of vectors.
-
-    To add new models to the benchmark, you can simply create a new class that satisfies this interface and register it.
-    See `biobench.registry` for a tutorial on adding new vision backbones.
-    """
-
-    def img_encode(
-        self, batch: Float[Tensor, "batch 3 width height"]
-    ) -> EncodedImgBatch:
-        """Encode a batch of images."""
-        err_msg = f"{self.__class__.__name__} must implemented img_encode()."
-        raise NotImplementedError(err_msg)
-
-    def make_img_transform(self):
-        """Return whatever function the backbone wants for image preprocessing. This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone."""
-        err_msg = f"{self.__class__.__name__} must implemented make_img_transform()."
-        raise NotImplementedError(err_msg)
-
-
-############
-# REGISTRY #
-############
-
-
-_global_backbone_registry: dict[str, type[VisionBackbone]] = {}
-
-
-@beartype.beartype
-def load_vision_backbone(model_cfg: config.Model) -> VisionBackbone:
-    """Load a pretrained vision backbone.
-
-    Args:
-        model_cfg: Configuration object containing the organization ('org') and checkpoint ('ckpt') identifiers for the model.
-
-    Returns:
-        An initialized VisionBackbone instance ready for inference.
-
-    Raises:
-        ValueError: If the specified organization is not registered.
-    """
-    if model_cfg.org not in _global_backbone_registry:
-        raise ValueError(f"Org '{model_cfg.org}' not found.")
-
-    cls = _global_backbone_registry[model_cfg.org]
-    return cls(model_cfg.ckpt)
-
-
-@beartype.beartype
-def register_vision_backbone(model_org: str, cls: type[VisionBackbone]):
-    """Register a new vision backbone class."""
-    if model_org in _global_backbone_registry:
-        logger.warning("Overwriting key '%s' in registry.", model_org)
-    _global_backbone_registry[model_org] = cls
-
-
-@beartype.beartype
-def list_vision_backbones() -> list[str]:
-    """List all vision backbone model orgs."""
-    return list(_global_backbone_registry.keys())
-
-```
-
 # small_data_metrics/newt.py
 
 ```python
@@ -153,7 +54,7 @@ from jaxtyping import Float, Int, Integer, Shaped, jaxtyped
 from PIL import Image
 from torch import Tensor
 
-from . import config, cvml, helpers, mllms, reporting
+from . import config, cvml, helpers, mllms, persistent_asyncio, reporting
 
 logger = logging.getLogger("newt")
 
@@ -342,7 +243,7 @@ def get_splits_cvml(
     backbone: cvml.VisionBackbone,
     rng: np.random.Generator,
 ) -> tuple[FeatureDataset, FeatureDataset]:
-    df = cfg.get_newt_df().with_row_index()
+    df = get_df(cfg).with_row_index()
 
     images_dir_name = "newt2021_images"
     images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
@@ -481,105 +382,104 @@ def eval_task_mllm(cfg: config.Experiment, task_name: str) -> reporting.Report:
     """
     rng = random.Random(cfg.seed)
 
-    with asyncio.Runner() as loop:
-        limiter = mllms.RateLimiter(cfg.parallel)
-        semaphore = asyncio.Semaphore(cfg.parallel)
+    limiter = mllms.RateLimiter(cfg.parallel)
+    semaphore = asyncio.Semaphore(cfg.parallel)
 
-        train_dataset, test_dataset = get_splits_mllm(cfg, task_name)
+    train_dataset, test_dataset = get_splits_mllm(cfg, task_name)
 
-        # We load all the training samples into memory right away because they will be re-used over and over again.
-        # Test samples are loaded one by one on demand.
-        i_train = list(range(len(train_dataset)))
-        if cfg.n_train >= 0:
-            i_train = rng.sample(i_train, k=min(cfg.n_train, len(i_train)))
+    # We load all the training samples into memory right away because they will be re-used over and over again.
+    # Test samples are loaded one by one on demand.
+    i_train = list(range(len(train_dataset)))
+    if cfg.n_train >= 0:
+        i_train = rng.sample(i_train, k=min(cfg.n_train, len(i_train)))
+    else:
+        i_train = i_train
+
+    train_examples = [train_dataset[i].to_example(rng) for i in i_train]
+    logger.info(
+        "Loaded %d/%d training examples (%s).",
+        len(train_examples),
+        len(train_dataset),
+        train_dataset.task,
+    )
+
+    @beartype.beartype
+    async def run_one(i: int) -> reporting.Prediction:
+        async with semaphore:
+            example = test_dataset[i]
+
+            # Set up prompt.
+            n = 0
+            fewshot = []
+            while (
+                mllms.fits(cfg, fewshot, example.img_b64, example.make_user(rng))
+            ) and (cfg.n_train < 0 or n < cfg.n_train):
+                # Add another example.
+                n += 1
+                fewshot = train_examples[:n]
+
+            # Only shuffle once.
+            rng.shuffle(fewshot)
+
+            await limiter.acquire()
+            assistant = await mllms.send(
+                cfg, fewshot, example.img_b64, example.make_user(rng)
+            )
+            pred_y, parsed = example.parse_assistant(assistant)
+
+            return reporting.Prediction(
+                example.img_id,
+                float(pred_y == example.label),
+                len(fewshot),
+                info={
+                    "task": test_dataset.task,
+                    "cluster": test_dataset.cluster,
+                    "subcluster": test_dataset.subcluster,
+                    "parsed": parsed,
+                },
+            )
+
+    @beartype.beartype
+    async def run_all() -> list[reporting.Prediction]:
+        if cfg.debug:
+            logger.info(
+                "Using the first 10/%d examples for testing (%s).",
+                len(test_dataset),
+                test_dataset.task,
+            )
+            test_i = list(range(10))
+        elif cfg.n_test >= 0 and cfg.n_test < len(test_dataset):
+            logger.info(
+                "Using %d/%d random examples for testing (%s).",
+                cfg.n_test,
+                len(test_dataset),
+                test_dataset.task,
+            )
+            test_i = rng.sample(range(len(test_dataset)), k=cfg.n_test)
         else:
-            i_train = i_train
+            logger.info(
+                "Using all (%d) examples for testing (%s).",
+                len(test_dataset),
+                test_dataset.task,
+            )
+            test_i = list(range(len(test_dataset)))
 
-        train_examples = [train_dataset[i].to_example(rng) for i in i_train]
-        logger.info(
-            "Loaded %d/%d training examples (%s).",
-            len(train_examples),
-            len(train_dataset),
-            train_dataset.task,
-        )
+        jobs = [asyncio.create_task(run_one(i)) for i in test_i]
+        preds = []
+        for job in jobs:
+            pred: reporting.Prediction = await job
+            preds.append(pred)
+        return preds
 
-        @beartype.beartype
-        async def run_one(i: int) -> reporting.Prediction:
-            async with semaphore:
-                example = test_dataset[i]
-
-                # Set up prompt.
-                n = 0
-                fewshot = []
-                while (
-                    mllms.fits(cfg, fewshot, example.img_b64, example.make_user(rng))
-                ) and (cfg.n_train < 0 or n < cfg.n_train):
-                    # Add another example.
-                    n += 1
-                    fewshot = train_examples[:n]
-
-                # Only shuffle once.
-                rng.shuffle(fewshot)
-
-                await limiter.acquire()
-                assistant = await mllms.send(
-                    cfg, fewshot, example.img_b64, example.make_user(rng)
-                )
-                pred_y, parsed = example.parse_assistant(assistant)
-
-                return reporting.Prediction(
-                    example.img_id,
-                    float(pred_y == example.label),
-                    len(fewshot),
-                    info={
-                        "task": test_dataset.task,
-                        "cluster": test_dataset.cluster,
-                        "subcluster": test_dataset.subcluster,
-                        "parsed": parsed,
-                    },
-                )
-
-        @beartype.beartype
-        async def run_all() -> list[reporting.Prediction]:
-            if cfg.debug:
-                logger.info(
-                    "Using the first 10/%d examples for testing (%s).",
-                    len(test_dataset),
-                    test_dataset.task,
-                )
-                test_i = list(range(10))
-            elif cfg.n_test >= 0 and cfg.n_test < len(test_dataset):
-                logger.info(
-                    "Using %d/%d random examples for testing (%s).",
-                    cfg.n_test,
-                    len(test_dataset),
-                    test_dataset.task,
-                )
-                test_i = rng.sample(range(len(test_dataset)), k=cfg.n_test)
-            else:
-                logger.info(
-                    "Using all (%d) examples for testing (%s).",
-                    len(test_dataset),
-                    test_dataset.task,
-                )
-                test_i = list(range(len(test_dataset)))
-
-            jobs = [asyncio.create_task(run_one(i)) for i in test_i]
-            preds = []
-            for job in jobs:
-                pred: reporting.Prediction = await job
-                preds.append(pred)
-            return preds
-
-        preds = loop.run(run_all())
-        return reporting.Report(
-            task_name,
-            preds,
-            preds[0].n_train,
-            cfg,
-            task_cluster=test_dataset.cluster,
-            task_subcluster=test_dataset.subcluster,
-        )
+    preds = persistent_asyncio.run(run_all())
+    return reporting.Report(
+        task_name,
+        preds,
+        preds[0].n_train,
+        cfg,
+        task_cluster=test_dataset.cluster,
+        task_subcluster=test_dataset.subcluster,
+    )
 
 
 @beartype.beartype
@@ -786,7 +686,7 @@ def get_splits_mllm(
     Raises:
         RuntimeError: If the NeWT dataset is not found at the specified path.
     """
-    df = cfg.get_newt_df().with_row_index()
+    df = get_df(cfg).with_row_index()
 
     images_dir_name = "newt2021_images"
     images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
@@ -1500,8 +1400,29 @@ text_label_to_classname = {
 ##########
 
 
+@beartype.beartype
+def get_df(cfg: config.Experiment) -> pl.DataFrame:
+    """Load the NeWT dataset labels into a Polars DataFrame.
+
+    This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
+
+    Returns:
+        A Polars DataFrame containing the NeWT dataset labels and metadata.
+    """
+    import polars as pl
+
+    labels_csv_path = os.path.join(cfg.newt_data, "newt2021_labels.csv")
+
+    if not os.path.isfile(labels_csv_path):
+        msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset?"
+        raise RuntimeError(msg)
+
+    return pl.read_csv(labels_csv_path)
+
+
+@beartype.beartype
 def get_task_names(cfg: config.Experiment) -> list[str]:
-    df = cfg.get_newt_df()
+    df = get_df(cfg)
     filtered_tasks = []
     for task in df.get_column("task").unique().to_list():
         task_df = df.filter(pl.col("task") == task)
@@ -1606,6 +1527,105 @@ def sample(
 
     # Return the balanced subset
     return img_ids[i], labels[i]
+
+```
+
+# small_data_metrics/cvml.py
+
+```python
+"""Stores all vision backbones.
+
+Users can register new custom backbones from their code to evaluate on biobench using `register_vision_backbone`.
+As long as it satisfies the `biobench.cvml.VisionBackbone` interface, it will work will all tasks.
+
+.. include:: ./tutorial.md
+"""
+
+import dataclasses
+import logging
+
+import beartype
+import torch
+from jaxtyping import Float, jaxtyped
+from torch import Tensor
+
+from . import config
+
+logger = logging.getLogger(__name__)
+
+
+@jaxtyped(typechecker=beartype.beartype)
+@dataclasses.dataclass(frozen=True)
+class EncodedImgBatch:
+    """The output of a `VisionBackbone`'s `VisionBackbone.img_encode()` method."""
+
+    img_features: Float[Tensor, "batch img_dim"]
+    """Image-level features. Each image is represented by a single vector."""
+    patch_features: Float[Tensor, "batch n_patches patch_dim"] | None
+    """Patch-level features. Only ViTs have patch-level features. These features might be a different dimension that the image features because of projection heads or such."""
+
+
+@jaxtyped(typechecker=beartype.beartype)
+class VisionBackbone(torch.nn.Module):
+    """A frozen vision model that embeds batches of images into batches of vectors.
+
+    To add new models to the benchmark, you can simply create a new class that satisfies this interface and register it.
+    See `biobench.registry` for a tutorial on adding new vision backbones.
+    """
+
+    def img_encode(
+        self, batch: Float[Tensor, "batch 3 width height"]
+    ) -> EncodedImgBatch:
+        """Encode a batch of images."""
+        err_msg = f"{self.__class__.__name__} must implemented img_encode()."
+        raise NotImplementedError(err_msg)
+
+    def make_img_transform(self):
+        """Return whatever function the backbone wants for image preprocessing. This should be an evaluation transform, not a training transform, because we are using the output features of this backbone as data and not updating this backbone."""
+        err_msg = f"{self.__class__.__name__} must implemented make_img_transform()."
+        raise NotImplementedError(err_msg)
+
+
+############
+# REGISTRY #
+############
+
+
+_global_backbone_registry: dict[str, type[VisionBackbone]] = {}
+
+
+@beartype.beartype
+def load_vision_backbone(model_cfg: config.Model) -> VisionBackbone:
+    """Load a pretrained vision backbone.
+
+    Args:
+        model_cfg: Configuration object containing the organization ('org') and checkpoint ('ckpt') identifiers for the model.
+
+    Returns:
+        An initialized VisionBackbone instance ready for inference.
+
+    Raises:
+        ValueError: If the specified organization is not registered.
+    """
+    if model_cfg.org not in _global_backbone_registry:
+        raise ValueError(f"Org '{model_cfg.org}' not found.")
+
+    cls = _global_backbone_registry[model_cfg.org]
+    return cls(model_cfg.ckpt)
+
+
+@beartype.beartype
+def register_vision_backbone(model_org: str, cls: type[VisionBackbone]):
+    """Register a new vision backbone class."""
+    if model_org in _global_backbone_registry:
+        logger.warning("Overwriting key '%s' in registry.", model_org)
+    _global_backbone_registry[model_org] = cls
+
+
+@beartype.beartype
+def list_vision_backbones() -> list[str]:
+    """List all vision backbone model orgs."""
+    return list(_global_backbone_registry.keys())
 
 ```
 
@@ -1999,7 +2019,7 @@ register_mllm(
 )
 register_mllm(
     "openrouter",
-    Mllm("qwen/qwen2.5-vl-72b-instruct", 32_000, 0.7, 0.7, ["fp32", "bf16"]),
+    Mllm("qwen/qwen2.5-vl-72b-instruct", 32_000, 0.7, 0.7, ["fp16"]),
 )
 
 # Proprietary
@@ -2024,6 +2044,28 @@ register_mllm(
     "openrouter",
     Mllm("openai/gpt-4o-2024-11-20", 128_000, 2.5, 10.0),
 )
+
+```
+
+# small_data_metrics/persistent_asyncio.py
+
+```python
+import asyncio
+import threading
+
+# Thread-local storage for loops
+_thread_local = threading.local()
+
+
+def run(coro):
+    """Run a coroutine using a persistent event loop for the current thread."""
+    # Get or create the thread's event loop
+    if not hasattr(_thread_local, "loop") or _thread_local.loop.is_closed():
+        _thread_local.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_thread_local.loop)
+
+    # Run the coroutine
+    return _thread_local.loop.run_until_complete(coro)
 
 ```
 
@@ -2369,198 +2411,6 @@ class TorchvisionModel(cvml.VisionBackbone):
     def make_img_transform(self):
         # Per the docs, each set of weights has its own transform: https://pytorch.org/vision/stable/models.html#using-the-pre-trained-models
         return self.model.weights.transforms()
-
-```
-
-# small_data_metrics/config.py
-
-```python
-"""Configuration management for small data metrics experiments.
-
-This module provides dataclasses and utilities for loading, managing, and
-validating experiment configurations from TOML files.
-"""
-
-import dataclasses
-import os.path
-import tomllib
-import typing
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import polars as pl
-
-
-@dataclasses.dataclass(frozen=True)
-class Model:
-    """Configuration for a model to be evaluated.
-
-    This class defines the essential parameters needed to identify and load a specific model for evaluation in the benchmark.
-
-    Attributes:
-        method: The type of model - either "cvml" (computer vision model) or "mllm" (multimodal language model).
-        org: Organization or source of the model (e.g., "openai", "google", "openrouter").
-        ckpt: Checkpoint or specific model identifier (e.g., "gpt-4o", "gemini-2.0-flash").
-    """
-
-    method: typing.Literal["cvml", "mllm"]
-    org: str
-    ckpt: str
-
-
-@dataclasses.dataclass(frozen=True)
-class Newt:
-    """Configuration options specific to the NeWT benchmark."""
-
-    # Filter options - can specify task names, clusters, sub-clusters, or combinations
-    tasks: list[str] | None = None
-    """List of specific NeWT task names to run. If None, all tasks are included unless filtered by other criteria."""
-
-    include_clusters: list[str] | None = None
-    """List of NeWT task clusters to run (e.g., "appearance", "behavior", "context"). If None, all clusters are included."""
-
-    include_subclusters: list[str] | None = None
-    """List of NeWT task sub-clusters to run (e.g., "species", "age", "health"). If None, all sub-clusters are included."""
-
-    exclude_tasks: list[str] | None = None
-    """List of task names to exclude even if they match other criteria."""
-
-    exclude_clusters: list[str] | None = None
-    """List of cluster names to exclude even if they contain tasks that match other criteria."""
-
-    exclude_subclusters: list[str] | None = None
-    """List of sub-cluster names to exclude even if they contain tasks that match other criteria."""
-
-
-@dataclasses.dataclass(frozen=True)
-class Experiment:
-    """Configuration for a benchmark experiment.
-
-    This class defines all parameters needed to run a benchmark experiment, including model selection, dataset configuration, evaluation settings, and output preferences.
-    """
-
-    model: Model
-
-    n_train: int = -1
-    """Number of maximum training samples. Negative number means use all of them."""
-    n_test: int = -1
-    """Number of test samples. Negative number means use all of them."""
-    sampling: typing.Literal["uniform", "balanced"] = "uniform"
-
-    device: typing.Literal["cpu", "mps", "cuda"] = "cuda"
-    """which kind of accelerator to use."""
-    debug: bool = False
-    """whether to run in debug mode."""
-
-    ssl: bool = True
-    """Use SSL when connecting to remote servers to download checkpoints; use --no-ssl if your machine has certificate issues. See `biobench.third_party_models.get_ssl()` for a discussion of how this works."""
-    # Reporting and graphing.
-    report_to: str = os.path.join(".", "results")
-    """where to save reports to."""
-    graph: bool = True
-    """whether to make graphs."""
-    graph_to: str = os.path.join(".", "graphs")
-    """where to save graphs to."""
-    log_to: str = os.path.join(".", "logs")
-    """where to save logs to."""
-
-    # MLLM only
-    temp: float = 0.0
-    prompting: typing.Literal["single", "multi"] = "single"
-    cot_enabled: bool = False
-    parallel: int = 1
-    """Number of parallel requests per second to MLLM service providers."""
-
-    # CVML only
-    slurm: bool = False
-    """whether to use submitit to run jobs on a slurm cluster."""
-    slurm_acct: str = ""
-    """slurm account string."""
-    batch_size: int = 256
-    """Batch size for computer vision model."""
-    n_workers: int = 8
-    """Number of dataloader worker processes."""
-    seed: int = 17
-    """Radnom seed."""
-
-    newt_data: str = ""
-    newt: Newt = dataclasses.field(default_factory=Newt)
-
-    def get_newt_df(self) -> "pl.DataFrame":
-        """Load the NeWT dataset labels into a Polars DataFrame.
-
-        This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
-
-        Returns:
-            A Polars DataFrame containing the NeWT dataset labels and metadata.
-        """
-        import polars as pl
-
-        labels_csv_path = os.path.join(self.newt_data, "newt2021_labels.csv")
-
-        if not os.path.isfile(labels_csv_path):
-            msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset?"
-            raise RuntimeError(msg)
-
-        return pl.read_csv(labels_csv_path)
-
-    def to_dict(self) -> dict[str, object]:
-        """Convert the experiment configuration to a dictionary.
-
-        Returns:
-            A dictionary representation of all configuration parameters.
-        """
-        return dataclasses.asdict(self)
-
-
-def load(path: str) -> list[Experiment]:
-    """Load experiments from a TOML file.
-
-    None of the fields in Experiment are lists, so anytime we find a list in the TOML, we add another dimension to our grid search over all possible experiments.
-    """
-    with open(path, "rb") as f:
-        data = tomllib.load(f)
-
-    if not isinstance(data, dict):
-        raise ValueError(
-            f"TOML file {path} must contain a dictionary at the root level"
-        )
-
-    # Extract models list
-    models = data.pop("models", [])
-    if not isinstance(models, list):
-        raise ValueError("models must be a list of tables in TOML")
-
-    # Start with models as base experiments
-    experiments = [{"model": Model(**model)} for model in models]
-
-    # Handle NeWT config specially
-    newt = data.pop("newt", {})
-
-    # For each remaining field in the TOML
-    for key, value in data.items():
-        new_experiments = []
-
-        # Convert single values to lists
-        if not isinstance(value, list):
-            value = [value]
-
-        # For each existing partial experiment
-        for exp in experiments:
-            # Add every value for this field
-            for v in value:
-                new_exp = exp.copy()
-                new_exp[key] = v
-                new_experiments.append(new_exp)
-
-        experiments = new_experiments
-
-    # Now add the NeWT config to all experiments
-    for exp in experiments:
-        exp["newt"] = Newt(**newt)
-
-    # Convert dictionaries to Experiment objects
-    return [Experiment(**exp) for exp in experiments]
 
 ```
 
@@ -3055,6 +2905,181 @@ ALL_RGB01 = [
 
 ```
 
+# small_data_metrics/config.py
+
+```python
+"""Configuration management for small data metrics experiments.
+
+This module provides dataclasses and utilities for loading, managing, and
+validating experiment configurations from TOML files.
+"""
+
+import dataclasses
+import os.path
+import tomllib
+import typing
+
+import beartype
+
+
+@beartype.beartype
+@dataclasses.dataclass(frozen=True)
+class Model:
+    """Configuration for a model to be evaluated.
+
+    This class defines the essential parameters needed to identify and load a specific model for evaluation in the benchmark.
+
+    Attributes:
+        method: The type of model - either "cvml" (computer vision model) or "mllm" (multimodal language model).
+        org: Organization or source of the model (e.g., "openai", "google", "openrouter").
+        ckpt: Checkpoint or specific model identifier (e.g., "gpt-4o", "gemini-2.0-flash").
+    """
+
+    method: typing.Literal["cvml", "mllm"]
+    org: str
+    ckpt: str
+
+
+@beartype.beartype
+@dataclasses.dataclass(frozen=True)
+class Newt:
+    """Configuration options specific to the NeWT benchmark."""
+
+    # Filter options - can specify task names, clusters, sub-clusters, or combinations
+    tasks: list[str] | None = None
+    """List of specific NeWT task names to run. If None, all tasks are included unless filtered by other criteria."""
+
+    include_clusters: list[str] | None = None
+    """List of NeWT task clusters to run (e.g., "appearance", "behavior", "context"). If None, all clusters are included."""
+
+    include_subclusters: list[str] | None = None
+    """List of NeWT task sub-clusters to run (e.g., "species", "age", "health"). If None, all sub-clusters are included."""
+
+    exclude_tasks: list[str] | None = None
+    """List of task names to exclude even if they match other criteria."""
+
+    exclude_clusters: list[str] | None = None
+    """List of cluster names to exclude even if they contain tasks that match other criteria."""
+
+    exclude_subclusters: list[str] | None = None
+    """List of sub-cluster names to exclude even if they contain tasks that match other criteria."""
+
+
+@beartype.beartype
+@dataclasses.dataclass(frozen=True)
+class Experiment:
+    """Configuration for a benchmark experiment.
+
+    This class defines all parameters needed to run a benchmark experiment, including model selection, dataset configuration, evaluation settings, and output preferences.
+    """
+
+    model: Model
+
+    n_train: int = -1
+    """Number of maximum training samples. Negative number means use all of them."""
+    n_test: int = -1
+    """Number of test samples. Negative number means use all of them."""
+    sampling: typing.Literal["uniform", "balanced"] = "uniform"
+
+    device: typing.Literal["cpu", "mps", "cuda"] = "cuda"
+    """which kind of accelerator to use."""
+    debug: bool = False
+    """whether to run in debug mode."""
+
+    ssl: bool = True
+    """Use SSL when connecting to remote servers to download checkpoints; use --no-ssl if your machine has certificate issues. See `biobench.third_party_models.get_ssl()` for a discussion of how this works."""
+    # Reporting and graphing.
+    report_to: str = os.path.join(".", "results")
+    """where to save reports to."""
+    graph: bool = True
+    """whether to make graphs."""
+    graph_to: str = os.path.join(".", "graphs")
+    """where to save graphs to."""
+    log_to: str = os.path.join(".", "logs")
+    """where to save logs to."""
+
+    # MLLM only
+    temp: float = 0.0
+    prompting: typing.Literal["single", "multi"] = "single"
+    cot_enabled: bool = False
+    parallel: int = 1
+    """Number of parallel requests per second to MLLM service providers."""
+
+    # CVML only
+    slurm: bool = False
+    """whether to use submitit to run jobs on a slurm cluster."""
+    slurm_acct: str = ""
+    """slurm account string."""
+    batch_size: int = 256
+    """Batch size for computer vision model."""
+    n_workers: int = 8
+    """Number of dataloader worker processes."""
+    seed: int = 17
+    """Radnom seed."""
+
+    newt_data: str = ""
+    newt: Newt = dataclasses.field(default_factory=Newt)
+
+    def to_dict(self) -> dict[str, object]:
+        """Convert the experiment configuration to a dictionary.
+
+        Returns:
+            A dictionary representation of all configuration parameters.
+        """
+        return dataclasses.asdict(self)
+
+
+def load(path: str) -> list[Experiment]:
+    """Load experiments from a TOML file.
+
+    None of the fields in Experiment are lists, so anytime we find a list in the TOML, we add another dimension to our grid search over all possible experiments.
+    """
+    with open(path, "rb") as f:
+        data = tomllib.load(f)
+
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"TOML file {path} must contain a dictionary at the root level"
+        )
+
+    # Extract models list
+    models = data.pop("models", [])
+    if not isinstance(models, list):
+        raise ValueError("models must be a list of tables in TOML")
+
+    # Start with models as base experiments
+    experiments = [{"model": Model(**model)} for model in models]
+
+    # Handle NeWT config specially
+    newt = data.pop("newt", {})
+
+    # For each remaining field in the TOML
+    for key, value in data.items():
+        new_experiments = []
+
+        # Convert single values to lists
+        if not isinstance(value, list):
+            value = [value]
+
+        # For each existing partial experiment
+        for exp in experiments:
+            # Add every value for this field
+            for v in value:
+                new_exp = exp.copy()
+                new_exp[key] = v
+                new_experiments.append(new_exp)
+
+        experiments = new_experiments
+
+    # Now add the NeWT config to all experiments
+    for exp in experiments:
+        exp["newt"] = Newt(**newt)
+
+    # Convert dictionaries to Experiment objects
+    return [Experiment(**exp) for exp in experiments]
+
+```
+
 # benchmark.py
 
 ```python
@@ -3124,7 +3149,7 @@ def benchmark(cfg: str):
     # Load all task names -> (cluster, subclusters)
     task_mapping = {
         task: (cluster, subcluster)
-        for task, cluster, subcluster in cfg.get_newt_df()
+        for task, cluster, subcluster in newt.get_df(cfg)
         .select("task", "task_cluster", "task_subcluster")
         .group_by("task")
         .first()

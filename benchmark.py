@@ -64,7 +64,7 @@ def benchmark(cfg: str):
     # Load all task names -> (cluster, subclusters)
     task_mapping = {
         task: (cluster, subcluster)
-        for task, cluster, subcluster in cfg.get_newt_df()
+        for task, cluster, subcluster in newt.get_df(cfg)
         .select("task", "task_cluster", "task_subcluster")
         .group_by("task")
         .first()

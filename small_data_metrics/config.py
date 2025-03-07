@@ -8,12 +8,11 @@ import dataclasses
 import os.path
 import tomllib
 import typing
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import polars as pl
+import beartype
 
 
+@beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class Model:
     """Configuration for a model to be evaluated.
@@ -31,6 +30,7 @@ class Model:
     ckpt: str
 
 
+@beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class Newt:
     """Configuration options specific to the NeWT benchmark."""
@@ -55,6 +55,7 @@ class Newt:
     """List of sub-cluster names to exclude even if they contain tasks that match other criteria."""
 
 
+@beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class Experiment:
     """Configuration for a benchmark experiment.
@@ -108,24 +109,6 @@ class Experiment:
 
     newt_data: str = ""
     newt: Newt = dataclasses.field(default_factory=Newt)
-
-    def get_newt_df(self) -> "pl.DataFrame":
-        """Load the NeWT dataset labels into a Polars DataFrame.
-
-        This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
-
-        Returns:
-            A Polars DataFrame containing the NeWT dataset labels and metadata.
-        """
-        import polars as pl
-
-        labels_csv_path = os.path.join(self.newt_data, "newt2021_labels.csv")
-
-        if not os.path.isfile(labels_csv_path):
-            msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset?"
-            raise RuntimeError(msg)
-
-        return pl.read_csv(labels_csv_path)
 
     def to_dict(self) -> dict[str, object]:
         """Convert the experiment configuration to a dictionary.

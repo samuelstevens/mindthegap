@@ -39,7 +39,7 @@ from jaxtyping import Float, Int, Integer, Shaped, jaxtyped
 from PIL import Image
 from torch import Tensor
 
-from . import config, cvml, helpers, mllms, reporting
+from . import config, cvml, helpers, mllms, persistent_asyncio, reporting
 
 logger = logging.getLogger("newt")
 
@@ -228,7 +228,7 @@ def get_splits_cvml(
     backbone: cvml.VisionBackbone,
     rng: np.random.Generator,
 ) -> tuple[FeatureDataset, FeatureDataset]:
-    df = cfg.get_newt_df().with_row_index()
+    df = get_df(cfg).with_row_index()
 
     images_dir_name = "newt2021_images"
     images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
@@ -367,105 +367,104 @@ def eval_task_mllm(cfg: config.Experiment, task_name: str) -> reporting.Report:
     """
     rng = random.Random(cfg.seed)
 
-    with asyncio.Runner() as loop:
-        limiter = mllms.RateLimiter(cfg.parallel)
-        semaphore = asyncio.Semaphore(cfg.parallel)
+    limiter = mllms.RateLimiter(cfg.parallel)
+    semaphore = asyncio.Semaphore(cfg.parallel)
 
-        train_dataset, test_dataset = get_splits_mllm(cfg, task_name)
+    train_dataset, test_dataset = get_splits_mllm(cfg, task_name)
 
-        # We load all the training samples into memory right away because they will be re-used over and over again.
-        # Test samples are loaded one by one on demand.
-        i_train = list(range(len(train_dataset)))
-        if cfg.n_train >= 0:
-            i_train = rng.sample(i_train, k=min(cfg.n_train, len(i_train)))
+    # We load all the training samples into memory right away because they will be re-used over and over again.
+    # Test samples are loaded one by one on demand.
+    i_train = list(range(len(train_dataset)))
+    if cfg.n_train >= 0:
+        i_train = rng.sample(i_train, k=min(cfg.n_train, len(i_train)))
+    else:
+        i_train = i_train
+
+    train_examples = [train_dataset[i].to_example(rng) for i in i_train]
+    logger.info(
+        "Loaded %d/%d training examples (%s).",
+        len(train_examples),
+        len(train_dataset),
+        train_dataset.task,
+    )
+
+    @beartype.beartype
+    async def run_one(i: int) -> reporting.Prediction:
+        async with semaphore:
+            example = test_dataset[i]
+
+            # Set up prompt.
+            n = 0
+            fewshot = []
+            while (
+                mllms.fits(cfg, fewshot, example.img_b64, example.make_user(rng))
+            ) and (cfg.n_train < 0 or n < cfg.n_train):
+                # Add another example.
+                n += 1
+                fewshot = train_examples[:n]
+
+            # Only shuffle once.
+            rng.shuffle(fewshot)
+
+            await limiter.acquire()
+            assistant = await mllms.send(
+                cfg, fewshot, example.img_b64, example.make_user(rng)
+            )
+            pred_y, parsed = example.parse_assistant(assistant)
+
+            return reporting.Prediction(
+                example.img_id,
+                float(pred_y == example.label),
+                len(fewshot),
+                info={
+                    "task": test_dataset.task,
+                    "cluster": test_dataset.cluster,
+                    "subcluster": test_dataset.subcluster,
+                    "parsed": parsed,
+                },
+            )
+
+    @beartype.beartype
+    async def run_all() -> list[reporting.Prediction]:
+        if cfg.debug:
+            logger.info(
+                "Using the first 10/%d examples for testing (%s).",
+                len(test_dataset),
+                test_dataset.task,
+            )
+            test_i = list(range(10))
+        elif cfg.n_test >= 0 and cfg.n_test < len(test_dataset):
+            logger.info(
+                "Using %d/%d random examples for testing (%s).",
+                cfg.n_test,
+                len(test_dataset),
+                test_dataset.task,
+            )
+            test_i = rng.sample(range(len(test_dataset)), k=cfg.n_test)
         else:
-            i_train = i_train
+            logger.info(
+                "Using all (%d) examples for testing (%s).",
+                len(test_dataset),
+                test_dataset.task,
+            )
+            test_i = list(range(len(test_dataset)))
 
-        train_examples = [train_dataset[i].to_example(rng) for i in i_train]
-        logger.info(
-            "Loaded %d/%d training examples (%s).",
-            len(train_examples),
-            len(train_dataset),
-            train_dataset.task,
-        )
+        jobs = [asyncio.create_task(run_one(i)) for i in test_i]
+        preds = []
+        for job in jobs:
+            pred: reporting.Prediction = await job
+            preds.append(pred)
+        return preds
 
-        @beartype.beartype
-        async def run_one(i: int) -> reporting.Prediction:
-            async with semaphore:
-                example = test_dataset[i]
-
-                # Set up prompt.
-                n = 0
-                fewshot = []
-                while (
-                    mllms.fits(cfg, fewshot, example.img_b64, example.make_user(rng))
-                ) and (cfg.n_train < 0 or n < cfg.n_train):
-                    # Add another example.
-                    n += 1
-                    fewshot = train_examples[:n]
-
-                # Only shuffle once.
-                rng.shuffle(fewshot)
-
-                await limiter.acquire()
-                assistant = await mllms.send(
-                    cfg, fewshot, example.img_b64, example.make_user(rng)
-                )
-                pred_y, parsed = example.parse_assistant(assistant)
-
-                return reporting.Prediction(
-                    example.img_id,
-                    float(pred_y == example.label),
-                    len(fewshot),
-                    info={
-                        "task": test_dataset.task,
-                        "cluster": test_dataset.cluster,
-                        "subcluster": test_dataset.subcluster,
-                        "parsed": parsed,
-                    },
-                )
-
-        @beartype.beartype
-        async def run_all() -> list[reporting.Prediction]:
-            if cfg.debug:
-                logger.info(
-                    "Using the first 10/%d examples for testing (%s).",
-                    len(test_dataset),
-                    test_dataset.task,
-                )
-                test_i = list(range(10))
-            elif cfg.n_test >= 0 and cfg.n_test < len(test_dataset):
-                logger.info(
-                    "Using %d/%d random examples for testing (%s).",
-                    cfg.n_test,
-                    len(test_dataset),
-                    test_dataset.task,
-                )
-                test_i = rng.sample(range(len(test_dataset)), k=cfg.n_test)
-            else:
-                logger.info(
-                    "Using all (%d) examples for testing (%s).",
-                    len(test_dataset),
-                    test_dataset.task,
-                )
-                test_i = list(range(len(test_dataset)))
-
-            jobs = [asyncio.create_task(run_one(i)) for i in test_i]
-            preds = []
-            for job in jobs:
-                pred: reporting.Prediction = await job
-                preds.append(pred)
-            return preds
-
-        preds = loop.run(run_all())
-        return reporting.Report(
-            task_name,
-            preds,
-            preds[0].n_train,
-            cfg,
-            task_cluster=test_dataset.cluster,
-            task_subcluster=test_dataset.subcluster,
-        )
+    preds = persistent_asyncio.run(run_all())
+    return reporting.Report(
+        task_name,
+        preds,
+        preds[0].n_train,
+        cfg,
+        task_cluster=test_dataset.cluster,
+        task_subcluster=test_dataset.subcluster,
+    )
 
 
 @beartype.beartype
@@ -672,7 +671,7 @@ def get_splits_mllm(
     Raises:
         RuntimeError: If the NeWT dataset is not found at the specified path.
     """
-    df = cfg.get_newt_df().with_row_index()
+    df = get_df(cfg).with_row_index()
 
     images_dir_name = "newt2021_images"
     images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
@@ -1386,8 +1385,29 @@ text_label_to_classname = {
 ##########
 
 
+@beartype.beartype
+def get_df(cfg: config.Experiment) -> pl.DataFrame:
+    """Load the NeWT dataset labels into a Polars DataFrame.
+
+    This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
+
+    Returns:
+        A Polars DataFrame containing the NeWT dataset labels and metadata.
+    """
+    import polars as pl
+
+    labels_csv_path = os.path.join(cfg.newt_data, "newt2021_labels.csv")
+
+    if not os.path.isfile(labels_csv_path):
+        msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset?"
+        raise RuntimeError(msg)
+
+    return pl.read_csv(labels_csv_path)
+
+
+@beartype.beartype
 def get_task_names(cfg: config.Experiment) -> list[str]:
-    df = cfg.get_newt_df()
+    df = get_df(cfg)
     filtered_tasks = []
     for task in df.get_column("task").unique().to_list():
         task_df = df.filter(pl.col("task") == task)
