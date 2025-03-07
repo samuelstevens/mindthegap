@@ -385,7 +385,7 @@ register_mllm(
 )
 register_mllm(
     "openrouter",
-    Mllm("qwen/qwen2.5-vl-72b-instruct", 32_000, 0.7, 0.7, ["fp32", "bf16"]),
+    Mllm("qwen/qwen2.5-vl-72b-instruct", 32_000, 0.7, 0.7, ["fp16"]),
 )
 
 # Proprietary
