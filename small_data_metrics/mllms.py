@@ -32,16 +32,17 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 @dataclasses.dataclass(frozen=True)
 class Example:
     """A single example for few-shot learning with multimodal LLMs.
-    
+
     This class represents a complete example interaction with an MLLM,
     containing an image, a user prompt, and the expected assistant response.
     Used for few-shot prompting to demonstrate the expected behavior.
-    
+
     Attributes:
         img_b64: Base64-encoded image data with data URI prefix.
         user: The user's text prompt or question about the image.
         assistant: The expected/reference response from the assistant.
     """
+
     img_b64: str
     user: str
     assistant: str
@@ -50,7 +51,7 @@ class Example:
 @dataclasses.dataclass(frozen=True)
 class Mllm:
     """Configuration for a multimodal language model.
-    
+
     Attributes:
         name: Model identifier/checkpoint name.
         max_tokens: Maximum context length supported by the model.
@@ -58,6 +59,7 @@ class Mllm:
         usd_per_m_output: Cost in USD per million output tokens.
         quantizations: List of supported quantization formats.
     """
+
     name: str
     max_tokens: int
     usd_per_m_input: float
@@ -75,13 +77,13 @@ def fits(
     cfg: config.Experiment, examples: list[Example], img_b64: str, user: str
 ) -> bool:
     """Check if a prompt will fit within the model's context window.
-    
+
     Args:
         cfg: Experiment configuration.
         examples: Few-shot examples to include in the prompt.
         img_b64: Base64-encoded image data.
         user: User prompt text.
-        
+
     Returns:
         True if the prompt fits within the model's context window, False otherwise.
     """
@@ -194,17 +196,17 @@ def make_prompt(
     system: str = "",
 ) -> list[object]:
     """Create a prompt for the LLM based on the experiment configuration.
-    
+
     Args:
         cfg: Experiment configuration with prompting style.
         examples: Few-shot examples to include in the prompt.
         img_b64: Base64-encoded image data.
         user: User prompt text.
         system: Optional system message to include.
-        
+
     Returns:
         List of message objects formatted for the LLM API.
-        
+
     Raises:
         AssertionError: If prompting style is not recognized.
     """
@@ -285,13 +287,14 @@ def _make_multi_turn_prompt(
 @beartype.beartype
 class RateLimiter:
     """Rate limiter for API calls to prevent exceeding rate limits.
-    
+
     Implements a sliding window rate limiting algorithm to control
     the frequency of API calls.
     """
+
     def __init__(self, max_rate: int, window_s: float = 1.0):
         """Initialize the rate limiter.
-        
+
         Args:
             max_rate: Maximum number of requests allowed in the time window.
             window_s: Time window in seconds.
@@ -302,7 +305,7 @@ class RateLimiter:
 
     async def acquire(self):
         """Acquire permission to make an API call.
-        
+
         Blocks until a request can be made without exceeding the rate limit.
         """
         now = time.monotonic()
@@ -397,5 +400,13 @@ register_mllm(
 )
 register_mllm(
     "openrouter",
+    Mllm("google/gemini-2.0-flash-001", 1_000_000, 0.1, 0.4),
+)
+register_mllm(
+    "openrouter",
     Mllm("openai/gpt-4o-mini-2024-07-18", 128_000, 0.15, 0.6),
+)
+register_mllm(
+    "openrouter",
+    Mllm("openai/gpt-4o-2024-11-20", 128_000, 2.5, 10.0),
 )
