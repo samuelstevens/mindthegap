@@ -97,8 +97,22 @@ def benchmark(cfg: str, dry_run: bool = True):
                 jobs.append(job)
 
     if dry_run:
-        # Summarize the jobs. Count the number of jobs to run by LLM and the number of training examples. Print a small table. AI!
-        breakpoint()
+        # Summarize the jobs by model and training examples
+        model_counts = {}
+        for job_cfg, task_name in jobs:
+            model_name = job_cfg.model.name
+            n_train = job_cfg.newt.n_train
+            key = (model_name, n_train)
+            model_counts[key] = model_counts.get(key, 0) + 1
+        
+        # Print summary table
+        logger.info("Job Summary:")
+        logger.info("%-40s | %-10s | %-5s", "Model", "Train Size", "Count")
+        logger.info("-" * 60)
+        for (model, n_train), count in sorted(model_counts.items()):
+            logger.info("%-40s | %-10d | %-5d", model, n_train, count)
+        logger.info("-" * 60)
+        logger.info("Total jobs to run: %d", len(jobs))
 
     logger.info("Submitted %d jobs (skipped %d).", len(jobs), n_skipped)
 
