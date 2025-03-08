@@ -76,3 +76,6 @@ def test_include_task_inclusion_exclusion_precedence():
     """Test that exclusion takes precedence over inclusion."""
     cfg = config.Newt(tasks=["task1"], exclude_tasks=["task1"])
     assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
+
+
+# Add tests for newt.get_task_names AI!
