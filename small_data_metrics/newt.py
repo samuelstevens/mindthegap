@@ -228,10 +228,10 @@ def get_splits_cvml(
     backbone: cvml.VisionBackbone,
     rng: np.random.Generator,
 ) -> tuple[FeatureDataset, FeatureDataset]:
-    df = get_df(cfg).with_row_index()
+    df = get_df(cfg.newt_root).with_row_index()
 
     images_dir_name = "newt2021_images"
-    images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
+    images_dir_path = os.path.join(cfg.newt_root, images_dir_name)
 
     img_transform = backbone.make_img_transform()
     backbone = torch.compile(backbone.to(cfg.device))
@@ -671,10 +671,10 @@ def get_splits_mllm(
     Raises:
         RuntimeError: If the NeWT dataset is not found at the specified path.
     """
-    df = get_df(cfg).with_row_index()
+    df = get_df(cfg.newt_root).with_row_index()
 
     images_dir_name = "newt2021_images"
-    images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
+    images_dir_path = os.path.join(cfg.newt_root, images_dir_name)
 
     task_df = df.filter(pl.col("task") == task_name)
 
@@ -1386,7 +1386,7 @@ text_label_to_classname = {
 
 
 @beartype.beartype
-def get_df(cfg: config.Experiment) -> pl.DataFrame:
+def get_df(root: str) -> pl.DataFrame:
     """Load the NeWT dataset labels into a Polars DataFrame.
 
     This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
@@ -1396,7 +1396,7 @@ def get_df(cfg: config.Experiment) -> pl.DataFrame:
     """
     import polars as pl
 
-    labels_csv_path = os.path.join(cfg.newt_data, "newt2021_labels.csv")
+    labels_csv_path = os.path.join(root, "newt2021_labels.csv")
 
     if not os.path.isfile(labels_csv_path):
         msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset?"
@@ -1407,19 +1407,20 @@ def get_df(cfg: config.Experiment) -> pl.DataFrame:
 
 @beartype.beartype
 def get_task_names(cfg: config.Experiment) -> list[str]:
-    df = get_df(cfg)
+    # Document this function. AI!
+    df = get_df(cfg.newt_root)
     filtered_tasks = []
     for task in df.get_column("task").unique().to_list():
         task_df = df.filter(pl.col("task") == task)
         cluster = task_df.item(row=0, column="task_cluster")
         subcluster = task_df.item(row=0, column="task_subcluster")
-        if _include_task(cfg.newt, task, cluster, subcluster):
+        if include_task(cfg.newt, task, cluster, subcluster):
             filtered_tasks.append(task)
     return filtered_tasks
 
 
 @beartype.beartype
-def _include_task(
+def include_task(
     cfg: config.Newt, task: str, cluster: str, subcluster: str | None
 ) -> bool:
     """Determine if a task should be included based on the configuration.
