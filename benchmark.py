@@ -1,5 +1,6 @@
 """Entrypoint for running benchmarking."""
 
+import collections
 import logging
 import os
 import resource
@@ -84,7 +85,7 @@ def benchmark(cfg: str, dry_run: bool = True):
                 n_skipped += 1
                 continue
             elif dry_run:
-                jobs.append((cfg, task_name))
+                jobs.append(cfg)
             else:
                 if cfg.model.method == "cvml":
                     fn = newt.eval_task_cvml
@@ -98,21 +99,20 @@ def benchmark(cfg: str, dry_run: bool = True):
 
     if dry_run:
         # Summarize the jobs by model and training examples
-        model_counts = {}
-        for job_cfg, task_name in jobs:
-            model_name = job_cfg.model.name
-            n_train = job_cfg.newt.n_train
-            key = (model_name, n_train)
-            model_counts[key] = model_counts.get(key, 0) + 1
-        
+        model_counts = collections.defaultdict(int)
+        for job_cfg in jobs:
+            key = (job_cfg.model.ckpt, job_cfg.n_train)
+            model_counts[key] += 1
+
         # Print summary table
         logger.info("Job Summary:")
         logger.info("%-40s | %-10s | %-5s", "Model", "Train Size", "Count")
-        logger.info("-" * 60)
+        logger.info("-" * 61)
         for (model, n_train), count in sorted(model_counts.items()):
             logger.info("%-40s | %-10d | %-5d", model, n_train, count)
-        logger.info("-" * 60)
+        logger.info("-" * 61)
         logger.info("Total jobs to run: %d", len(jobs))
+        return
 
     logger.info("Submitted %d jobs (skipped %d).", len(jobs), n_skipped)
 
