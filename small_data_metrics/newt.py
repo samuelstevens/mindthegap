@@ -1407,7 +1407,17 @@ def get_df(root: str) -> pl.DataFrame:
 
 @beartype.beartype
 def get_task_names(cfg: config.Experiment) -> list[str]:
-    # Document this function. AI!
+    """Get a filtered list of task names based on configuration settings.
+    
+    This function retrieves all unique task names from the NeWT dataset and filters them
+    according to the inclusion/exclusion criteria specified in the configuration.
+    
+    Args:
+        cfg: Experiment configuration containing dataset path and filtering criteria.
+        
+    Returns:
+        A list of task names that match the filtering criteria.
+    """
     df = get_df(cfg.newt_root)
     filtered_tasks = []
     for task in df.get_column("task").unique().to_list():
