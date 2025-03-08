@@ -17,7 +17,7 @@ logger = logging.getLogger("benchmark.py")
 
 
 @beartype.beartype
-def benchmark(cfg: str):
+def benchmark(cfg: str, dry_run: bool = True):
     """Launch all jobs, using either a local GPU or a Slurm cluster. Then report results and save to disk."""
     cfgs = config.load(cfg)
 
@@ -83,6 +83,8 @@ def benchmark(cfg: str):
             ):
                 n_skipped += 1
                 continue
+            elif dry_run:
+                jobs.append((cfg, task_name))
             else:
                 if cfg.model.method == "cvml":
                     fn = newt.eval_task_cvml
@@ -93,6 +95,10 @@ def benchmark(cfg: str):
 
                 job = executor.submit(fn, cfg, task_name)
                 jobs.append(job)
+
+    if dry_run:
+        # Summarize the jobs. Count the number of jobs to run by LLM and the number of training examples. Print a small table. AI!
+        breakpoint()
 
     logger.info("Submitted %d jobs (skipped %d).", len(jobs), n_skipped)
 
