@@ -64,7 +64,7 @@ def eval_task_cvml(cfg: config.Experiment, task_name: str) -> reporting.Report:
 
     backbone = cvml.load_vision_backbone(cfg.model)
 
-    train_dataset, test_dataset = get_splits_cvml(cfg, backbone, task_name, rng_np)
+    train_dataset, test_dataset = get_splits_cvml(cfg, task_name, backbone, rng_np)
     x_train = train_dataset.x.numpy()
     y_train = train_dataset.y.numpy()
     x_test = test_dataset.x.numpy()
@@ -1394,8 +1394,6 @@ def get_df(root: str) -> pl.DataFrame:
     Returns:
         A Polars DataFrame containing the NeWT dataset labels and metadata.
     """
-    import polars as pl
-
     labels_csv_path = os.path.join(root, "newt2021_labels.csv")
 
     if not os.path.isfile(labels_csv_path):
@@ -1408,13 +1406,12 @@ def get_df(root: str) -> pl.DataFrame:
 @beartype.beartype
 def get_task_names(cfg: config.Experiment) -> list[str]:
     """Get a filtered list of task names based on configuration settings.
-    
-    This function retrieves all unique task names from the NeWT dataset and filters them
-    according to the inclusion/exclusion criteria specified in the configuration.
-    
+
+    This function retrieves all unique task names from the NeWT dataset and filters them according to the inclusion/exclusion criteria specified in the configuration.
+
     Args:
         cfg: Experiment configuration containing dataset path and filtering criteria.
-        
+
     Returns:
         A list of task names that match the filtering criteria.
     """

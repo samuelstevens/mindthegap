@@ -3,12 +3,10 @@ import os
 
 
 def main(in_paths: list[str], out_fpath: str):
+    """Args:
+    in_paths: Directories and paths for source files.
+    out_fpath: Path for output .txt file
     """
-    Args:
-        in_paths: Directories and paths for source files.
-        out_fpath: Path for output .txt file
-    """
-
     content = []
     # Get all Python files from input directories
     for path in in_paths:
@@ -60,7 +58,6 @@ def with_header(md_file: str, md_content: str, root: str) -> str:
     Returns:
         Content with header added if needed
     """
-
     if not md_content.lstrip().startswith("#"):
         rel_path = os.path.relpath(md_file, root)
         return f"# {rel_path}\n\n{md_content}"

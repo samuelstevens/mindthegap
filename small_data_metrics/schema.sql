@@ -42,5 +42,5 @@ CREATE TABLE IF NOT EXISTS predictions (
     result_id INTEGER NOT NULL,
     
     PRIMARY KEY (img_id, result_id),
-    FOREIGN KEY (result_id) REFERENCES results(id)
+    FOREIGN KEY (result_id) REFERENCES results(id) ON DELETE CASCADE
 );

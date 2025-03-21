@@ -3,7 +3,7 @@ docs: fmt
     uv run python scripts/docs.py --in-paths small_data_metrics benchmark.py --out-fpath docs/llms.txt
 
 lint: fmt
-    ruff check --fix small_data_metrics benchmark.py
+    ruff check --fix .
 
 test: fmt
     uv run pytest small_data_metrics

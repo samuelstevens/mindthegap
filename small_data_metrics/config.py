@@ -107,7 +107,7 @@ class Experiment:
     seed: int = 17
     """Radnom seed."""
 
-    newt_data: str = ""
+    newt_root: str = ""
     newt: Newt = dataclasses.field(default_factory=Newt)
 
     def to_dict(self) -> dict[str, object]:

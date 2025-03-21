@@ -28,6 +28,49 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 ###################
 
 
+ImageB64 = typing.NewType("ImageB64", str)
+
+
+@beartype.beartype
+def is_img_b64(value: str) -> typing.TypeGuard[ImageB64]:
+    """Check if a string is a properly formatted base64-encoded image.
+
+    This function acts as a type guard that narrows the type from str to ImageB64.
+
+    Args:
+        value: The string to validate
+
+    Returns:
+        True if the string is a valid base64 image, False otherwise
+    """
+    if not value.startswith("data:image/"):
+        return False
+
+    # Must contain the base64 marker
+    parts = value.split(";base64,", 1)
+    if len(parts) != 2:
+        return False
+
+    mime_part, data_part = parts
+
+    # Check if MIME type is valid
+    valid_mimes = [
+        "data:image/jpeg",
+        "data:image/png",
+        "data:image/webp",
+        "data:image/gif",
+        "data:image/svg+xml",
+    ]
+    if not any(mime_part == mime for mime in valid_mimes):
+        return False
+
+    # Check if the base64 part is not empty and contains valid characters
+    if not data_part:
+        return False
+
+    return True
+
+
 @beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class Example:
@@ -43,7 +86,7 @@ class Example:
         assistant: The expected/reference response from the assistant.
     """
 
-    img_b64: str
+    img_b64: ImageB64
     user: str
     assistant: str
 
@@ -120,6 +163,9 @@ async def send(
         ValueError: If required settings are missing
         RuntimeError: If LLM call fails
     """
+    assert img_b64.startswith("data:"), "img_b64 must be a data URI"
+    assert user, "user prompt cannot be empty"
+
     messages = make_prompt(cfg, examples, img_b64, user)
     mllm = load_mllm(cfg.model)
 

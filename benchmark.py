@@ -65,7 +65,7 @@ def benchmark(cfg: str, dry_run: bool = True):
     # Load all task names -> (cluster, subclusters)
     task_mapping = {
         task: (cluster, subcluster)
-        for task, cluster, subcluster in newt.get_df(cfg)
+        for task, cluster, subcluster in newt.get_df(cfg.newt_root)
         .select("task", "task_cluster", "task_subcluster")
         .group_by("task")
         .first()
@@ -106,10 +106,10 @@ def benchmark(cfg: str, dry_run: bool = True):
 
         # Print summary table
         logger.info("Job Summary:")
-        logger.info("%-40s | %10s | %5s", "Model", "Train Size", "Count")
+        logger.info("%-40s | %-10s | %-5s", "Model", "Train Size", "Count")
         logger.info("-" * 61)
         for (model, n_train), count in sorted(model_counts.items()):
-            logger.info("%-40s | %10d | %5d", model, n_train, count)
+            logger.info("%-40s | %-10d | %-5d", model, n_train, count)
         logger.info("-" * 61)
         logger.info("Total jobs to run: %d", len(jobs))
         return

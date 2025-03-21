@@ -40,6 +40,14 @@ def get_conn(cfg: config.Experiment) -> sqlite3.Connection:
     with open(schema_fpath) as fd:
         schema = fd.read()
     conn.executescript(schema)
+
+    # PRAGMA journal_mode = WAL;   -- Concurrent reads/writes
+    # PRAGMA synchronous = NORMAL; -- Good balance speed/safety
+    # PRAGMA foreign_keys = ON;    -- Enforce FK constraints
+    # PRAGMA busy_timeout = 5000;  -- Wait up to 5000ms before throwing timeout errors
+    # PRAGMA strict = ON;          -- Enforce strict type checking (SQLite ≥ 3.37)
+    # PRAGMA encoding = 'UTF-8';   -- Consistent text encoding
+
     return conn
 
 
@@ -81,7 +89,7 @@ def already_ran(
     WHERE task_name IS ?
     AND model_org IS ?
     AND model_ckpt IS ?
-    AND n_train IS ?
+    AND exp_cfg ->> '$.n_train' IS ?
     AND sampling IS ?
     """
     values_correct = [
@@ -109,7 +117,7 @@ def already_ran(
     AND task_subcluster IS ?
     AND model_org IS ?
     AND model_ckpt IS ?
-    AND n_train IS ?
+    AND exp_cfg ->> '$.n_train' IS ?
     AND sampling IS ?
     """
     values_newt = [
@@ -228,16 +236,15 @@ class Report:
         Args:
             conn: SQLite connection to write to
         """
+        assert self.task_name, ".task_name cannot be empty"
+        assert self.task_cluster, ".task_cluster cannot be empty"
+        assert self.predictions, ".predictions cannot be empty."
+
         if not conn:
             conn = self.get_conn()
 
         # Insert into results table
         cursor = conn.cursor()
-
-        # Determine method-specific fields
-        model_method = (
-            "mllm" if self.exp_cfg.model.org in ["anthropic", "openai"] else "cvml"
-        )
 
         # Prepare values for results table
         results_values = {
@@ -251,12 +258,8 @@ class Report:
             "model_org": self.exp_cfg.model.org,
             "model_ckpt": self.exp_cfg.model.ckpt,
             # MLLM-specific fields
-            "prompting": self.exp_cfg.prompting
-            if hasattr(self.exp_cfg, "prompting")
-            else None,
-            "cot_enabled": 1
-            if hasattr(self.exp_cfg, "cot") and self.exp_cfg.cot
-            else 0,
+            "prompting": self.exp_cfg.prompting,
+            "cot_enabled": 1 if self.exp_cfg.cot_enabled else 0,
             "parse_success_rate": self.parse_success_rate,
             "usd_per_answer": self.usd_per_answer,
             # CVML-specific fields
