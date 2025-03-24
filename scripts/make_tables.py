@@ -82,7 +82,16 @@ BootstrapResult = pl.Struct([
 
 @beartype.beartype
 def main(db: str = os.path.join("results", "results.sqlite")):
-    # Document this function. AI!
+    """Generate LaTeX tables from benchmark results.
+    
+    This function reads benchmark results from a SQLite database, computes bootstrap
+    confidence intervals for each model's performance, and generates LaTeX tables
+    for zero-shot (n_train=0) and one-shot (n_train=1) settings. The tables are 
+    saved to the results directory.
+    
+    Args:
+        db: Path to the SQLite database containing benchmark results.
+    """
     df = (
         pl.read_database(
             "SELECT results.exp_cfg, results.task_cluster, results.task_subcluster, results.model_ckpt, predictions.score, predictions.n_train FROM results JOIN predictions ON results.rowid = predictions.result_id",
