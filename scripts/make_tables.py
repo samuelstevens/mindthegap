@@ -81,47 +81,8 @@ BootstrapResult = pl.Struct([
 
 
 @beartype.beartype
-def main(db: str = os.path.join("results", "results.sqlite")):
-    """Generate LaTeX tables from benchmark results.
-    
-    This function reads benchmark results from a SQLite database, computes bootstrap
-    confidence intervals for each model's performance, and generates LaTeX tables
-    for zero-shot (n_train=0) and one-shot (n_train=1) settings. The tables are 
-    saved to the results directory.
-    
-    Args:
-        db: Path to the SQLite database containing benchmark results.
-    """
-    df = (
-        pl.read_database(
-            "SELECT results.exp_cfg, results.task_cluster, results.task_subcluster, results.model_ckpt, predictions.score, predictions.n_train FROM results JOIN predictions ON results.rowid = predictions.result_id",
-            sqlite3.connect(db),
-            infer_schema_length=100_000,
-        )
-        .lazy()
-        .filter(pl.col("model_ckpt").is_in(models))
-        .with_columns(
-            n_train_bucketed=pl.col("n_train")
-            .cut(bin_edges, include_breaks=True, left_closed=False)
-            .struct.field("breakpoint")
-        )
-        .group_by("task_cluster", "task_subcluster", "model_ckpt", "n_train_bucketed")
-        .all()
-        .with_columns(
-            pl.col("score")
-            .map_elements(bootstrap, return_dtype=BootstrapResult)
-            .alias("boot"),
-        )
-        .with_columns(
-            mean=pl.col("boot").struct.field("mean"),
-            ci_lower=pl.col("boot").struct.field("ci_lower"),
-            ci_upper=pl.col("boot").struct.field("ci_upper"),
-            model_rank=pl.col("model_ckpt").replace(model_ranks),
-        )
-        .drop("score", "exp_cfg", "boot", "n_train")
-        .collect()
-    )
-
+def mllm_only(df):
+    # Document this function. AI!
     for n_train in (0, 1):
         template = env.get_template(os.path.join("tables", "mllm-only.tmpl"))
 
@@ -158,6 +119,48 @@ def main(db: str = os.path.join("results", "results.sqlite")):
         table = template.render(data=data, label=label, caption="")
         with open(os.path.join("results", f"{label}.tex"), "w") as fd:
             fd.write(table)
+
+
+@beartype.beartype
+def main(db: str = os.path.join("results", "results.sqlite")):
+    """Generate LaTeX tables from benchmark results.
+
+    This function reads benchmark results from a SQLite database, computes bootstrap confidence intervals for each model's performance, and generates LaTeX tables for zero-shot (n_train=0) and one-shot (n_train=1) settings. The tables are saved to the results directory.
+
+    Args:
+        db: Path to the SQLite database containing benchmark results.
+    """
+    df = (
+        pl.read_database(
+            "SELECT results.exp_cfg, results.task_cluster, results.task_subcluster, results.model_ckpt, predictions.score, predictions.n_train FROM results JOIN predictions ON results.rowid = predictions.result_id",
+            sqlite3.connect(db),
+            infer_schema_length=100_000,
+        )
+        .lazy()
+        .filter(pl.col("model_ckpt").is_in(models))
+        .with_columns(
+            n_train_bucketed=pl.col("n_train")
+            .cut(bin_edges, include_breaks=True, left_closed=False)
+            .struct.field("breakpoint")
+        )
+        .group_by("task_cluster", "task_subcluster", "model_ckpt", "n_train_bucketed")
+        .all()
+        .with_columns(
+            pl.col("score")
+            .map_elements(bootstrap, return_dtype=BootstrapResult)
+            .alias("boot"),
+        )
+        .with_columns(
+            mean=pl.col("boot").struct.field("mean"),
+            ci_lower=pl.col("boot").struct.field("ci_lower"),
+            ci_upper=pl.col("boot").struct.field("ci_upper"),
+            model_rank=pl.col("model_ckpt").replace(model_ranks),
+        )
+        .drop("score", "exp_cfg", "boot", "n_train")
+        .collect()
+    )
+
+    mllm_only(df)
 
 
 if __name__ == "__main__":
