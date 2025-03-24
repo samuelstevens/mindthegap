@@ -82,7 +82,17 @@ BootstrapResult = pl.Struct([
 
 @beartype.beartype
 def mllm_only(df):
-    # Document this function. AI!
+    """Generate LaTeX tables for multimodal language model (MLLM) results.
+    
+    This function creates tables comparing performance of different MLLMs across
+    various tasks. It generates separate tables for zero-shot (n_train=0) and 
+    one-shot (n_train=1) settings, with confidence intervals for each model's
+    performance.
+    
+    Args:
+        df: A Polars DataFrame containing benchmark results with model performance
+            data, including task clusters, subclusters, and bootstrap statistics.
+    """
     for n_train in (0, 1):
         template = env.get_template(os.path.join("tables", "mllm-only.tmpl"))
 
