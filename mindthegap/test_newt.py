@@ -1,6 +1,6 @@
-"""Tests for the newt module in small_data_metrics package."""
+"""Tests for the newt module."""
 
-from small_data_metrics import config, newt
+from . import config, newt
 
 
 def test_include_task_no_filters():

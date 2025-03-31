@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
-<title>small_data_metrics.reporting API documentation</title>
+<title>mindthegap.reporting API documentation</title>
 <meta name="description" content="Reporting utilities for benchmark results …">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
@@ -35,7 +35,7 @@ el.replaceWith(d);
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>small_data_metrics.reporting</code></h1>
+<h1 class="title">Module <code>mindthegap.reporting</code></h1>
 </header>
 <section id="section-intro">
 <p>Reporting utilities for benchmark results.</p>
@@ -49,8 +49,8 @@ benchmark results, including database integration and visualization helpers.</p>
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="small_data_metrics.reporting.already_ran"><code class="name flex">
-<span>def <span class="ident">already_ran</span></span>(<span>conn: sqlite3.Connection,<br>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>task_name: str,<br>task_cluster: str,<br>task_subcluster: str | None) ‑> bool</span>
+<dt id="mindthegap.reporting.already_ran"><code class="name flex">
+<span>def <span class="ident">already_ran</span></span>(<span>conn: sqlite3.Connection,<br>cfg: <a title="mindthegap.config.Experiment" href="config.html#mindthegap.config.Experiment">Experiment</a>,<br>task_name: str,<br>task_cluster: str,<br>task_subcluster: str | None) ‑> bool</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -95,7 +95,7 @@ def already_ran(
     WHERE task_name IS ?
     AND model_org IS ?
     AND model_ckpt IS ?
-    AND n_train IS ?
+    AND exp_cfg -&gt;&gt; &#39;$.n_train&#39; IS ?
     AND sampling IS ?
     &#34;&#34;&#34;
     values_correct = [
@@ -123,7 +123,7 @@ def already_ran(
     AND task_subcluster IS ?
     AND model_org IS ?
     AND model_ckpt IS ?
-    AND n_train IS ?
+    AND exp_cfg -&gt;&gt; &#39;$.n_train&#39; IS ?
     AND sampling IS ?
     &#34;&#34;&#34;
     values_newt = [
@@ -147,7 +147,7 @@ def already_ran(
 <div class="desc"><p>Check if a benchmarking task has already been run for a given configuration.</p>
 <p>This function queries the SQLite database to determine if a report exists for a specific task under the provided experiment configuration. It handles two cases due to a historical bug where many tasks were incorrectly saved with <code>task_name = 'newt'</code> instead of their actual names.</p>
 <p><strong>Bug Explanation</strong>:
-In earlier versions of the codebase, reports for NeWT tasks were sometimes saved with <code>task_name = 'newt'</code> (the benchmark name) instead of the specific task name (e.g., 'ml_age_coopers_hawk'). This occurred because the <code><a title="small_data_metrics.reporting.Report" href="#small_data_metrics.reporting.Report">Report</a></code> object's <code>task_name</code> field was not always set correctly in functions like <code>benchmark_cvml</code> or <code>benchmark_mllm</code>. As a result, the original <code>report_exists</code> check, which relied solely on <code>task_name</code>, would fail to recognize that these tasks had been run, leading to unnecessary re-runs. To address this, this function performs a fallback check: if no report with the correct <code>task_name</code> is found, it looks for a report with <code>task_name = 'newt'</code> that matches the task's <code>task_cluster</code> and <code>task_subcluster</code>. If such a report exists, it assumes the task was part of that cluster/subcluster run.</p>
+In earlier versions of the codebase, reports for NeWT tasks were sometimes saved with <code>task_name = 'newt'</code> (the benchmark name) instead of the specific task name (e.g., 'ml_age_coopers_hawk'). This occurred because the <code><a title="mindthegap.reporting.Report" href="#mindthegap.reporting.Report">Report</a></code> object's <code>task_name</code> field was not always set correctly in functions like <code>benchmark_cvml</code> or <code>benchmark_mllm</code>. As a result, the original <code>report_exists</code> check, which relied solely on <code>task_name</code>, would fail to recognize that these tasks had been run, leading to unnecessary re-runs. To address this, this function performs a fallback check: if no report with the correct <code>task_name</code> is found, it looks for a report with <code>task_name = 'newt'</code> that matches the task's <code>task_cluster</code> and <code>task_subcluster</code>. If such a report exists, it assumes the task was part of that cluster/subcluster run.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>conn</code></strong></dt>
@@ -174,8 +174,8 @@ In earlier versions of the codebase, reports for NeWT tasks were sometimes saved
 <li>Future runs should ensure <code>task_name</code> is set correctly to avoid reliance on the fallback check.</li>
 </ul></div>
 </dd>
-<dt id="small_data_metrics.reporting.get_conn"><code class="name flex">
-<span>def <span class="ident">get_conn</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>) ‑> sqlite3.Connection</span>
+<dt id="mindthegap.reporting.get_conn"><code class="name flex">
+<span>def <span class="ident">get_conn</span></span>(<span>cfg: <a title="mindthegap.config.Experiment" href="config.html#mindthegap.config.Experiment">Experiment</a>) ‑> sqlite3.Connection</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -198,6 +198,14 @@ def get_conn(cfg: config.Experiment) -&gt; sqlite3.Connection:
     with open(schema_fpath) as fd:
         schema = fd.read()
     conn.executescript(schema)
+
+    # PRAGMA journal_mode = WAL;   -- Concurrent reads/writes
+    # PRAGMA synchronous = NORMAL; -- Good balance speed/safety
+    # PRAGMA foreign_keys = ON;    -- Enforce FK constraints
+    # PRAGMA busy_timeout = 5000;  -- Wait up to 5000ms before throwing timeout errors
+    # PRAGMA strict = ON;          -- Enforce strict type checking (SQLite ≥ 3.37)
+    # PRAGMA encoding = &#39;UTF-8&#39;;   -- Consistent text encoding
+
     return conn</code></pre>
 </details>
 <div class="desc"><p>Get a SQLite connection to the results database.</p>
@@ -210,7 +218,7 @@ def get_conn(cfg: config.Experiment) -&gt; sqlite3.Connection:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="small_data_metrics.reporting.Prediction"><code class="flex name class">
+<dt id="mindthegap.reporting.Prediction"><code class="flex name class">
 <span>class <span class="ident">Prediction</span></span>
 <span>(</span><span>img_id: str, score: float, n_train: int, info: dict[str, object])</span>
 </code></dt>
@@ -240,26 +248,26 @@ class Prediction:
 <div class="desc"><p>An individual test prediction.</p></div>
 <h3>Class variables</h3>
 <dl>
-<dt id="small_data_metrics.reporting.Prediction.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
+<dt id="mindthegap.reporting.Prediction.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
 <dd>
 <div class="desc"><p>Whatever kind of ID; used to find the original image/example.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Prediction.info"><code class="name">var <span class="ident">info</span> : dict[str, object]</code></dt>
+<dt id="mindthegap.reporting.Prediction.info"><code class="name">var <span class="ident">info</span> : dict[str, object]</code></dt>
 <dd>
 <div class="desc"><p>Any additional information included. This might be the original class, the true label, etc.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Prediction.n_train"><code class="name">var <span class="ident">n_train</span> : int</code></dt>
+<dt id="mindthegap.reporting.Prediction.n_train"><code class="name">var <span class="ident">n_train</span> : int</code></dt>
 <dd>
 <div class="desc"><p>Number of training examples used in this prection.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Prediction.score"><code class="name">var <span class="ident">score</span> : float</code></dt>
+<dt id="mindthegap.reporting.Prediction.score"><code class="name">var <span class="ident">score</span> : float</code></dt>
 <dd>
 <div class="desc"><p>Test score; typically 0 or 1 for classification tasks.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="small_data_metrics.reporting.Prediction.to_dict"><code class="name flex">
+<dt id="mindthegap.reporting.Prediction.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self) ‑> dict[str, object]</span>
 </code></dt>
 <dd>
@@ -275,9 +283,9 @@ class Prediction:
 </dd>
 </dl>
 </dd>
-<dt id="small_data_metrics.reporting.Report"><code class="flex name class">
+<dt id="mindthegap.reporting.Report"><code class="flex name class">
 <span>class <span class="ident">Report</span></span>
-<span>(</span><span>task_name: str,<br>predictions: list[<a title="small_data_metrics.reporting.Prediction" href="#small_data_metrics.reporting.Prediction">Prediction</a>],<br>n_train: int,<br>exp_cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>*,<br>task_cluster: str | None = None,<br>task_subcluster: str | None = None,<br>parse_success_rate: float | None = None,<br>usd_per_answer: float | None = None,<br>classifier: Literal['knn', 'svm', 'ridge'] | None = None,<br>argv: list[str] = &lt;factory&gt;,<br>commit: str = 'b4b8fc82dedd0031d4179070178184f7b90c920d',<br>posix_time: float = &lt;factory&gt;,<br>gpu_name: str = &lt;factory&gt;,<br>hostname: str = &lt;factory&gt;)</span>
+<span>(</span><span>task_name: str,<br>predictions: list[<a title="mindthegap.reporting.Prediction" href="#mindthegap.reporting.Prediction">Prediction</a>],<br>n_train: int,<br>exp_cfg: <a title="mindthegap.config.Experiment" href="config.html#mindthegap.config.Experiment">Experiment</a>,<br>*,<br>task_cluster: str | None = None,<br>task_subcluster: str | None = None,<br>parse_success_rate: float | None = None,<br>usd_per_answer: float | None = None,<br>classifier: Literal['knn', 'svm', 'ridge'] | None = None,<br>argv: list[str] = &lt;factory&gt;,<br>commit: str = '8ba0f45d31de42d4b09bc81ae53c0a59a7168ea6',<br>posix_time: float = &lt;factory&gt;,<br>gpu_name: str = &lt;factory&gt;,<br>hostname: str = &lt;factory&gt;)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -350,16 +358,15 @@ class Report:
         Args:
             conn: SQLite connection to write to
         &#34;&#34;&#34;
+        assert self.task_name, &#34;.task_name cannot be empty&#34;
+        assert self.task_cluster, &#34;.task_cluster cannot be empty&#34;
+        assert self.predictions, &#34;.predictions cannot be empty.&#34;
+
         if not conn:
             conn = self.get_conn()
 
         # Insert into results table
         cursor = conn.cursor()
-
-        # Determine method-specific fields
-        model_method = (
-            &#34;mllm&#34; if self.exp_cfg.model.org in [&#34;anthropic&#34;, &#34;openai&#34;] else &#34;cvml&#34;
-        )
 
         # Prepare values for results table
         results_values = {
@@ -373,12 +380,8 @@ class Report:
             &#34;model_org&#34;: self.exp_cfg.model.org,
             &#34;model_ckpt&#34;: self.exp_cfg.model.ckpt,
             # MLLM-specific fields
-            &#34;prompting&#34;: self.exp_cfg.prompting
-            if hasattr(self.exp_cfg, &#34;prompting&#34;)
-            else None,
-            &#34;cot_enabled&#34;: 1
-            if hasattr(self.exp_cfg, &#34;cot&#34;) and self.exp_cfg.cot
-            else 0,
+            &#34;prompting&#34;: self.exp_cfg.prompting,
+            &#34;cot_enabled&#34;: 1 if self.exp_cfg.cot_enabled else 0,
             &#34;parse_success_rate&#34;: self.parse_success_rate,
             &#34;usd_per_answer&#34;: self.usd_per_answer,
             # CVML-specific fields
@@ -426,66 +429,66 @@ class Report:
 stored in the exp_cfg field to avoid duplication.</p></div>
 <h3>Class variables</h3>
 <dl>
-<dt id="small_data_metrics.reporting.Report.argv"><code class="name">var <span class="ident">argv</span> : list[str]</code></dt>
+<dt id="mindthegap.reporting.Report.argv"><code class="name">var <span class="ident">argv</span> : list[str]</code></dt>
 <dd>
 <div class="desc"><p>Command used to get this report.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.classifier"><code class="name">var <span class="ident">classifier</span> : Literal['knn', 'svm', 'ridge'] | None</code></dt>
+<dt id="mindthegap.reporting.Report.classifier"><code class="name">var <span class="ident">classifier</span> : Literal['knn', 'svm', 'ridge'] | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.commit"><code class="name">var <span class="ident">commit</span> : str</code></dt>
+<dt id="mindthegap.reporting.Report.commit"><code class="name">var <span class="ident">commit</span> : str</code></dt>
 <dd>
 <div class="desc"><p>Git commit for this current report.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.exp_cfg"><code class="name">var <span class="ident">exp_cfg</span> : <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a></code></dt>
+<dt id="mindthegap.reporting.Report.exp_cfg"><code class="name">var <span class="ident">exp_cfg</span> : <a title="mindthegap.config.Experiment" href="config.html#mindthegap.config.Experiment">Experiment</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.gpu_name"><code class="name">var <span class="ident">gpu_name</span> : str</code></dt>
+<dt id="mindthegap.reporting.Report.gpu_name"><code class="name">var <span class="ident">gpu_name</span> : str</code></dt>
 <dd>
 <div class="desc"><p>Name of the GPU that ran this experiment.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.hostname"><code class="name">var <span class="ident">hostname</span> : str</code></dt>
+<dt id="mindthegap.reporting.Report.hostname"><code class="name">var <span class="ident">hostname</span> : str</code></dt>
 <dd>
 <div class="desc"><p>Machine hostname that ran this experiment.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.n_train"><code class="name">var <span class="ident">n_train</span> : int</code></dt>
+<dt id="mindthegap.reporting.Report.n_train"><code class="name">var <span class="ident">n_train</span> : int</code></dt>
 <dd>
 <div class="desc"><p>Number of training samples <em>actually</em> used.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.parse_success_rate"><code class="name">var <span class="ident">parse_success_rate</span> : float | None</code></dt>
+<dt id="mindthegap.reporting.Report.parse_success_rate"><code class="name">var <span class="ident">parse_success_rate</span> : float | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.posix_time"><code class="name">var <span class="ident">posix_time</span> : float</code></dt>
+<dt id="mindthegap.reporting.Report.posix_time"><code class="name">var <span class="ident">posix_time</span> : float</code></dt>
 <dd>
 <div class="desc"><p>Time when this report was constructed.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.predictions"><code class="name">var <span class="ident">predictions</span> : list[<a title="small_data_metrics.reporting.Prediction" href="#small_data_metrics.reporting.Prediction">Prediction</a>]</code></dt>
+<dt id="mindthegap.reporting.Report.predictions"><code class="name">var <span class="ident">predictions</span> : list[<a title="mindthegap.reporting.Prediction" href="#mindthegap.reporting.Prediction">Prediction</a>]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.task_cluster"><code class="name">var <span class="ident">task_cluster</span> : str | None</code></dt>
+<dt id="mindthegap.reporting.Report.task_cluster"><code class="name">var <span class="ident">task_cluster</span> : str | None</code></dt>
 <dd>
 <div class="desc"><p>The cluster this task belongs to (e.g., 'birds', 'plants').</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.task_name"><code class="name">var <span class="ident">task_name</span> : str</code></dt>
+<dt id="mindthegap.reporting.Report.task_name"><code class="name">var <span class="ident">task_name</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.task_subcluster"><code class="name">var <span class="ident">task_subcluster</span> : str | None</code></dt>
+<dt id="mindthegap.reporting.Report.task_subcluster"><code class="name">var <span class="ident">task_subcluster</span> : str | None</code></dt>
 <dd>
 <div class="desc"><p>The subcluster this task belongs to (e.g., 'songbirds', 'trees').</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.usd_per_answer"><code class="name">var <span class="ident">usd_per_answer</span> : float | None</code></dt>
+<dt id="mindthegap.reporting.Report.usd_per_answer"><code class="name">var <span class="ident">usd_per_answer</span> : float | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="small_data_metrics.reporting.Report.to_dict"><code class="name flex">
+<dt id="mindthegap.reporting.Report.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self) ‑> dict[str, object]</span>
 </code></dt>
 <dd>
@@ -505,7 +508,7 @@ stored in the exp_cfg field to avoid duplication.</p></div>
 </details>
 <div class="desc"><p>Convert the report to a JSON-compatible dictionary. Uses dataclasses.asdict() with custom handling for special types.</p></div>
 </dd>
-<dt id="small_data_metrics.reporting.Report.write"><code class="name flex">
+<dt id="mindthegap.reporting.Report.write"><code class="name flex">
 <span>def <span class="ident">write</span></span>(<span>self, conn: sqlite3.Connection | None = None)</span>
 </code></dt>
 <dd>
@@ -519,16 +522,15 @@ stored in the exp_cfg field to avoid duplication.</p></div>
     Args:
         conn: SQLite connection to write to
     &#34;&#34;&#34;
+    assert self.task_name, &#34;.task_name cannot be empty&#34;
+    assert self.task_cluster, &#34;.task_cluster cannot be empty&#34;
+    assert self.predictions, &#34;.predictions cannot be empty.&#34;
+
     if not conn:
         conn = self.get_conn()
 
     # Insert into results table
     cursor = conn.cursor()
-
-    # Determine method-specific fields
-    model_method = (
-        &#34;mllm&#34; if self.exp_cfg.model.org in [&#34;anthropic&#34;, &#34;openai&#34;] else &#34;cvml&#34;
-    )
 
     # Prepare values for results table
     results_values = {
@@ -542,12 +544,8 @@ stored in the exp_cfg field to avoid duplication.</p></div>
         &#34;model_org&#34;: self.exp_cfg.model.org,
         &#34;model_ckpt&#34;: self.exp_cfg.model.ckpt,
         # MLLM-specific fields
-        &#34;prompting&#34;: self.exp_cfg.prompting
-        if hasattr(self.exp_cfg, &#34;prompting&#34;)
-        else None,
-        &#34;cot_enabled&#34;: 1
-        if hasattr(self.exp_cfg, &#34;cot&#34;) and self.exp_cfg.cot
-        else 0,
+        &#34;prompting&#34;: self.exp_cfg.prompting,
+        &#34;cot_enabled&#34;: 1 if self.exp_cfg.cot_enabled else 0,
         &#34;parse_success_rate&#34;: self.parse_success_rate,
         &#34;usd_per_answer&#34;: self.usd_per_answer,
         # CVML-specific fields
@@ -609,46 +607,46 @@ stored in the exp_cfg field to avoid duplication.</p></div>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="small_data_metrics" href="index.html">small_data_metrics</a></code></li>
+<li><code><a title="mindthegap" href="index.html">mindthegap</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="small_data_metrics.reporting.already_ran" href="#small_data_metrics.reporting.already_ran">already_ran</a></code></li>
-<li><code><a title="small_data_metrics.reporting.get_conn" href="#small_data_metrics.reporting.get_conn">get_conn</a></code></li>
+<li><code><a title="mindthegap.reporting.already_ran" href="#mindthegap.reporting.already_ran">already_ran</a></code></li>
+<li><code><a title="mindthegap.reporting.get_conn" href="#mindthegap.reporting.get_conn">get_conn</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="small_data_metrics.reporting.Prediction" href="#small_data_metrics.reporting.Prediction">Prediction</a></code></h4>
+<h4><code><a title="mindthegap.reporting.Prediction" href="#mindthegap.reporting.Prediction">Prediction</a></code></h4>
 <ul class="">
-<li><code><a title="small_data_metrics.reporting.Prediction.img_id" href="#small_data_metrics.reporting.Prediction.img_id">img_id</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Prediction.info" href="#small_data_metrics.reporting.Prediction.info">info</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Prediction.n_train" href="#small_data_metrics.reporting.Prediction.n_train">n_train</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Prediction.score" href="#small_data_metrics.reporting.Prediction.score">score</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Prediction.to_dict" href="#small_data_metrics.reporting.Prediction.to_dict">to_dict</a></code></li>
+<li><code><a title="mindthegap.reporting.Prediction.img_id" href="#mindthegap.reporting.Prediction.img_id">img_id</a></code></li>
+<li><code><a title="mindthegap.reporting.Prediction.info" href="#mindthegap.reporting.Prediction.info">info</a></code></li>
+<li><code><a title="mindthegap.reporting.Prediction.n_train" href="#mindthegap.reporting.Prediction.n_train">n_train</a></code></li>
+<li><code><a title="mindthegap.reporting.Prediction.score" href="#mindthegap.reporting.Prediction.score">score</a></code></li>
+<li><code><a title="mindthegap.reporting.Prediction.to_dict" href="#mindthegap.reporting.Prediction.to_dict">to_dict</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="small_data_metrics.reporting.Report" href="#small_data_metrics.reporting.Report">Report</a></code></h4>
+<h4><code><a title="mindthegap.reporting.Report" href="#mindthegap.reporting.Report">Report</a></code></h4>
 <ul class="two-column">
-<li><code><a title="small_data_metrics.reporting.Report.argv" href="#small_data_metrics.reporting.Report.argv">argv</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.classifier" href="#small_data_metrics.reporting.Report.classifier">classifier</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.commit" href="#small_data_metrics.reporting.Report.commit">commit</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.exp_cfg" href="#small_data_metrics.reporting.Report.exp_cfg">exp_cfg</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.gpu_name" href="#small_data_metrics.reporting.Report.gpu_name">gpu_name</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.hostname" href="#small_data_metrics.reporting.Report.hostname">hostname</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.n_train" href="#small_data_metrics.reporting.Report.n_train">n_train</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.parse_success_rate" href="#small_data_metrics.reporting.Report.parse_success_rate">parse_success_rate</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.posix_time" href="#small_data_metrics.reporting.Report.posix_time">posix_time</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.predictions" href="#small_data_metrics.reporting.Report.predictions">predictions</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.task_cluster" href="#small_data_metrics.reporting.Report.task_cluster">task_cluster</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.task_name" href="#small_data_metrics.reporting.Report.task_name">task_name</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.task_subcluster" href="#small_data_metrics.reporting.Report.task_subcluster">task_subcluster</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.to_dict" href="#small_data_metrics.reporting.Report.to_dict">to_dict</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.usd_per_answer" href="#small_data_metrics.reporting.Report.usd_per_answer">usd_per_answer</a></code></li>
-<li><code><a title="small_data_metrics.reporting.Report.write" href="#small_data_metrics.reporting.Report.write">write</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.argv" href="#mindthegap.reporting.Report.argv">argv</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.classifier" href="#mindthegap.reporting.Report.classifier">classifier</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.commit" href="#mindthegap.reporting.Report.commit">commit</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.exp_cfg" href="#mindthegap.reporting.Report.exp_cfg">exp_cfg</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.gpu_name" href="#mindthegap.reporting.Report.gpu_name">gpu_name</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.hostname" href="#mindthegap.reporting.Report.hostname">hostname</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.n_train" href="#mindthegap.reporting.Report.n_train">n_train</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.parse_success_rate" href="#mindthegap.reporting.Report.parse_success_rate">parse_success_rate</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.posix_time" href="#mindthegap.reporting.Report.posix_time">posix_time</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.predictions" href="#mindthegap.reporting.Report.predictions">predictions</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.task_cluster" href="#mindthegap.reporting.Report.task_cluster">task_cluster</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.task_name" href="#mindthegap.reporting.Report.task_name">task_name</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.task_subcluster" href="#mindthegap.reporting.Report.task_subcluster">task_subcluster</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.to_dict" href="#mindthegap.reporting.Report.to_dict">to_dict</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.usd_per_answer" href="#mindthegap.reporting.Report.usd_per_answer">usd_per_answer</a></code></li>
+<li><code><a title="mindthegap.reporting.Report.write" href="#mindthegap.reporting.Report.write">write</a></code></li>
 </ul>
 </li>
 </ul>

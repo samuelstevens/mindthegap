@@ -15,7 +15,7 @@ def get_cache_dir() -> str:
     """Get the cache directory for downloading models.
 
     Checks environment variables in the following order:
-    1. SMALL_DATA_METRICS_CACHE - Custom cache for this project
+    1. MINDTHEGAP_CACHE - Custom cache for this project
     2. HF_HOME - Hugging Face's home directory
     3. HF_HUB_CACHE - Hugging Face's hub cache
 
@@ -23,7 +23,7 @@ def get_cache_dir() -> str:
         The path to the cache directory, or "." (current directory) if none found.
     """
     cache_dir = ""
-    for var in ("SMALL_DATA_METRICS_CACHE", "HF_HOME", "HF_HUB_CACHE"):
+    for var in ("MINDTHEGAP_CACHE", "HF_HOME", "HF_HUB_CACHE"):
         cache_dir = cache_dir or os.environ.get(var, "")
     return cache_dir or "."
 

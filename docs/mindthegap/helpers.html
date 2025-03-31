@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
-<title>benchmark API documentation</title>
-<meta name="description" content="Entrypoint for running benchmarking.">
+<title>mindthegap.helpers API documentation</title>
+<meta name="description" content="Useful helpers for more than two tasks that don&#39;t fit anywhere else.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
@@ -35,10 +35,10 @@ el.replaceWith(d);
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>benchmark</code></h1>
+<h1 class="title">Module <code>mindthegap.helpers</code></h1>
 </header>
 <section id="section-intro">
-<p>Entrypoint for running benchmarking.</p>
+<p>Useful helpers for more than two tasks that don't fit anywhere else.</p>
 </section>
 <section>
 </section>
@@ -47,8 +47,8 @@ el.replaceWith(d);
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="benchmark.benchmark"><code class="name flex">
-<span>def <span class="ident">benchmark</span></span>(<span>cfg: str, dry_run: bool = True)</span>
+<dt id="mindthegap.helpers.fs_safe"><code class="name flex">
+<span>def <span class="ident">fs_safe</span></span>(<span>string: str) ‑> str</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -56,122 +56,157 @@ el.replaceWith(d);
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@beartype.beartype
-def benchmark(cfg: str, dry_run: bool = True):
-    &#34;&#34;&#34;Launch all jobs, using either a local GPU or a Slurm cluster. Then report results and save to disk.&#34;&#34;&#34;
-    cfgs = config.load(cfg)
-
-    if not cfgs:
-        logger.warning(&#34;No configurations loaded.&#34;)
-        return
-
-    first = cfgs[0]
-    # Verify all configs have consistent execution settings
-    for cfg in cfgs[1:]:
-        if cfg.slurm != first.slurm:
-            raise ValueError(&#34;All configs must have the same value for slurm&#34;)
-        if cfg.slurm and cfg.slurm_acct != first.slurm_acct:
-            raise ValueError(
-                &#34;All configs must have the same slurm_acct when slurm=True&#34;
-            )
-        if cfg.log_to != first.log_to:
-            raise ValueError(&#34;All configs must have the same log_to directory&#34;)
-        if cfg.ssl != first.ssl:
-            raise ValueError(&#34;All configs must have the same ssl setting&#34;)
-
-    # 1. Setup executor.
-    if first.slurm:
-        executor = submitit.SlurmExecutor(folder=first.log_to)
-        executor.update_parameters(
-            time=30,
-            gpus_per_node=1,
-            cpus_per_task=8,
-            stderr_to_stdout=True,
-            partition=&#34;debug&#34;,
-            account=first.slurm_acct,
-        )
-        # See biobench.third_party_models.get_ssl() for a discussion of this variable.
-        if not first.ssl:
-            executor.update_parameters(setup=[&#34;export BIOBENCH_DISABLE_SSL=1&#34;])
-    else:
-        executor = submitit.DebugExecutor(folder=first.log_to)
-        # See biobench.third_party_models.get_ssl() for a discussion of this variable.
-        if not first.ssl:
-            os.environ[&#34;BIOBENCH_DISABLE_SSL&#34;] = &#34;1&#34;
-
-    conn = reporting.get_conn(first)
-
-    # Load all task names -&gt; (cluster, subclusters)
-    task_mapping = {
-        task: (cluster, subcluster)
-        for task, cluster, subcluster in newt.get_df(cfg.newt_root)
-        .select(&#34;task&#34;, &#34;task_cluster&#34;, &#34;task_subcluster&#34;)
-        .group_by(&#34;task&#34;)
-        .first()
-        .rows()
-    }
-
-    # 2. Run benchmarks.
-    jobs = []
-    n_skipped = 0
-    for cfg in helpers.progress(cfgs, desc=&#34;submitting jobs&#34;):
-        task_names = newt.get_task_names(cfg)
-        for task_name in task_names:
-            task_cluster, task_subcluster = task_mapping[task_name]
-            if reporting.already_ran(
-                conn, cfg, task_name, task_cluster, task_subcluster
-            ):
-                n_skipped += 1
-                continue
-            elif dry_run:
-                jobs.append(cfg)
-            else:
-                if cfg.model.method == &#34;cvml&#34;:
-                    fn = newt.eval_task_cvml
-                elif cfg.model.method == &#34;mllm&#34;:
-                    fn = newt.eval_task_mllm
-                else:
-                    typing.assert_never(cfg.model.method)
-
-                job = executor.submit(fn, cfg, task_name)
-                jobs.append(job)
-
-    if dry_run:
-        # Summarize the jobs by model and training examples
-        model_counts = collections.defaultdict(int)
-        for job_cfg in jobs:
-            key = (job_cfg.model.ckpt, job_cfg.n_train)
-            model_counts[key] += 1
-
-        # Print summary table
-        logger.info(&#34;Job Summary:&#34;)
-        logger.info(&#34;%-40s | %-10s | %-5s&#34;, &#34;Model&#34;, &#34;Train Size&#34;, &#34;Count&#34;)
-        logger.info(&#34;-&#34; * 61)
-        for (model, n_train), count in sorted(model_counts.items()):
-            logger.info(&#34;%-40s | %-10d | %-5d&#34;, model, n_train, count)
-        logger.info(&#34;-&#34; * 61)
-        logger.info(&#34;Total jobs to run: %d&#34;, len(jobs))
-        return
-
-    logger.info(&#34;Submitted %d jobs (skipped %d).&#34;, len(jobs), n_skipped)
-
-    # 3. Write results to sqlite.
-    for i, future in enumerate(submitit.helpers.as_completed(jobs)):
-        err = future.exception()
-        if err:
-            logger.warning(&#34;Error running job: %s: %s&#34;, err, err.__cause__)
-            continue
-
-        report: reporting.Report = future.result()
-        report.write(conn)
-        logger.info(&#34;Finished %d/%d jobs.&#34;, i + 1, len(jobs))
-
-    logger.info(&#34;Finished.&#34;)</code></pre>
+def fs_safe(string: str) -&gt; str:
+    &#34;&#34;&#34;Makes a string safe for filesystems by removing typical special characters.&#34;&#34;&#34;
+    return string.replace(&#34;:&#34;, &#34;_&#34;).replace(&#34;/&#34;, &#34;_&#34;)</code></pre>
 </details>
-<div class="desc"><p>Launch all jobs, using either a local GPU or a Slurm cluster. Then report results and save to disk.</p></div>
+<div class="desc"><p>Makes a string safe for filesystems by removing typical special characters.</p></div>
+</dd>
+<dt id="mindthegap.helpers.load_img_b64"><code class="name flex">
+<span>def <span class="ident">load_img_b64</span></span>(<span>path: str) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@beartype.beartype
+def load_img_b64(path: str) -&gt; str:
+    img = Image.open(path)
+    buf = io.BytesIO()
+    img.save(buf, format=&#34;webp&#34;)
+    b64 = pybase64.b64encode(buf.getvalue())
+    s64 = b64.decode(&#34;utf8&#34;)
+    return &#34;data:image/webp;base64,&#34; + s64</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="mindthegap.helpers.write_hparam_sweep_plot"><code class="name flex">
+<span>def <span class="ident">write_hparam_sweep_plot</span></span>(<span>task: str,<br>model: str,<br>clf,<br>x: str = 'param_ridgeclassifier__alpha',<br>y: str = 'mean_test_score') ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@beartype.beartype
+def write_hparam_sweep_plot(
+    task: str,
+    model: str,
+    clf,
+    x: str = &#34;param_ridgeclassifier__alpha&#34;,
+    y: str = &#34;mean_test_score&#34;,
+) -&gt; str:
+    import matplotlib.pyplot as plt
+    import polars as pl
+
+    df = pl.DataFrame(clf.cv_results_)
+
+    fig, ax = plt.subplots()
+
+    if &#34;n_resources&#34; in df.columns:
+        for n_resources in df.get_column(&#34;n_resources&#34;).unique().sort():
+            ax.scatter(
+                x=df.filter(pl.col(&#34;n_resources&#34;) == n_resources)[x],
+                y=df.filter(pl.col(&#34;n_resources&#34;) == n_resources)[y],
+                label=f&#34;{n_resources} ex.&#34;,
+            )
+        fig.legend()
+    else:
+        ax.scatter(x=df[x], y=df[y])
+
+    ax.set_xlabel(x)
+    ax.set_ylabel(y)
+    ax.set_xscale(&#34;log&#34;)
+    ax.set_title(model)
+
+    fig.tight_layout()
+    filepath = os.path.join(&#34;logs&#34;, f&#34;{task}_{fs_safe(model)}_hparam.png&#34;)
+    fig.savefig(filepath)
+    return filepath</code></pre>
+</details>
+<div class="desc"></div>
 </dd>
 </dl>
 </section>
 <section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="mindthegap.helpers.progress"><code class="flex name class">
+<span>class <span class="ident">progress</span></span>
+<span>(</span><span>it, *, every: int = 10, desc: str = 'progress', total: int = 0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@beartype.beartype
+class progress:
+    def __init__(self, it, *, every: int = 10, desc: str = &#34;progress&#34;, total: int = 0):
+        &#34;&#34;&#34;Wraps an iterable with a logger like tqdm but doesn&#39;t use any control codes to manipulate a progress bar, which doesn&#39;t work well when your output is redirected to a file. Instead, simple logging statements are used, but it includes quality-of-life features like iteration speed and predicted time to finish.
+
+        Args:
+            it: Iterable to wrap.
+            every: How many iterations between logging progress.
+            desc: What to name the logger.
+            total: If non-zero, how long the iterable is.
+        &#34;&#34;&#34;
+        self.it = it
+        self.every = every
+        self.logger = logging.getLogger(desc)
+        self.total = total
+
+    def __iter__(self):
+        start = time.time()
+
+        try:
+            total = len(self)
+        except TypeError:
+            total = None
+
+        for i, obj in enumerate(self.it):
+            yield obj
+
+            if (i + 1) % self.every == 0:
+                now = time.time()
+                duration_s = now - start
+                per_min = (i + 1) / (duration_s / 60)
+
+                if total is not None:
+                    pred_min = (total - (i + 1)) / per_min
+                    self.logger.info(
+                        &#34;%d/%d (%.1f%%) | %.1f it/m (expected finish in %.1fm)&#34;,
+                        i + 1,
+                        total,
+                        (i + 1) / total * 100,
+                        per_min,
+                        pred_min,
+                    )
+                else:
+                    self.logger.info(&#34;%d/? | %.1f it/m&#34;, i + 1, per_min)
+
+    def __len__(self) -&gt; int:
+        if self.total &gt; 0:
+            return self.total
+
+        # Will throw exception.
+        return len(self.it)</code></pre>
+</details>
+<div class="desc"><p>Wraps an iterable with a logger like tqdm but doesn't use any control codes to manipulate a progress bar, which doesn't work well when your output is redirected to a file. Instead, simple logging statements are used, but it includes quality-of-life features like iteration speed and predicted time to finish.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>it</code></strong></dt>
+<dd>Iterable to wrap.</dd>
+<dt><strong><code>every</code></strong></dt>
+<dd>How many iterations between logging progress.</dd>
+<dt><strong><code>desc</code></strong></dt>
+<dd>What to name the logger.</dd>
+<dt><strong><code>total</code></strong></dt>
+<dd>If non-zero, how long the iterable is.</dd>
+</dl></div>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -179,9 +214,23 @@ def benchmark(cfg: str, dry_run: bool = True):
 <ul></ul>
 </div>
 <ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="mindthegap" href="index.html">mindthegap</a></code></li>
+</ul>
+</li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="benchmark.benchmark" href="#benchmark.benchmark">benchmark</a></code></li>
+<li><code><a title="mindthegap.helpers.fs_safe" href="#mindthegap.helpers.fs_safe">fs_safe</a></code></li>
+<li><code><a title="mindthegap.helpers.load_img_b64" href="#mindthegap.helpers.load_img_b64">load_img_b64</a></code></li>
+<li><code><a title="mindthegap.helpers.write_hparam_sweep_plot" href="#mindthegap.helpers.write_hparam_sweep_plot">write_hparam_sweep_plot</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="mindthegap.helpers.progress" href="#mindthegap.helpers.progress">progress</a></code></h4>
+</li>
 </ul>
 </li>
 </ul>

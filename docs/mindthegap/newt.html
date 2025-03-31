@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
-<title>small_data_metrics.newt API documentation</title>
+<title>mindthegap.newt API documentation</title>
 <meta name="description" content="NeWT: Natural World Tasks …">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
@@ -35,7 +35,7 @@ el.replaceWith(d);
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>small_data_metrics.newt</code></h1>
+<h1 class="title">Module <code>mindthegap.newt</code></h1>
 </header>
 <section id="section-intro">
 <p>NeWT: Natural World Tasks.</p>
@@ -58,8 +58,8 @@ We aggregate scores across all 164 tasks.</p>
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="small_data_metrics.newt.eval_task_cvml"><code class="name flex">
-<span>def <span class="ident">eval_task_cvml</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>task_name: str) ‑> <a title="small_data_metrics.reporting.Report" href="reporting.html#small_data_metrics.reporting.Report">Report</a></span>
+<dt id="mindthegap.newt.eval_task_cvml"><code class="name flex">
+<span>def <span class="ident">eval_task_cvml</span></span>(<span>cfg: <a title="mindthegap.config.Experiment" href="config.html#mindthegap.config.Experiment">Experiment</a>,<br>task_name: str) ‑> <a title="mindthegap.reporting.Report" href="reporting.html#mindthegap.reporting.Report">Report</a></span>
 </code></dt>
 <dd>
 <details class="source">
@@ -81,7 +81,7 @@ def eval_task_cvml(cfg: config.Experiment, task_name: str) -&gt; reporting.Repor
 
     backbone = cvml.load_vision_backbone(cfg.model)
 
-    train_dataset, test_dataset = get_splits_cvml(cfg, backbone, task_name, rng_np)
+    train_dataset, test_dataset = get_splits_cvml(cfg, task_name, backbone, rng_np)
     x_train = train_dataset.x.numpy()
     y_train = train_dataset.y.numpy()
     x_test = test_dataset.x.numpy()
@@ -134,8 +134,8 @@ def eval_task_cvml(cfg: config.Experiment, task_name: str) -&gt; reporting.Repor
 <h2 id="returns">Returns</h2>
 <p>A Report object containing evaluation results for the task.</p></div>
 </dd>
-<dt id="small_data_metrics.newt.eval_task_mllm"><code class="name flex">
-<span>def <span class="ident">eval_task_mllm</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>task_name: str) ‑> <a title="small_data_metrics.reporting.Report" href="reporting.html#small_data_metrics.reporting.Report">Report</a></span>
+<dt id="mindthegap.newt.eval_task_mllm"><code class="name flex">
+<span>def <span class="ident">eval_task_mllm</span></span>(<span>cfg: <a title="mindthegap.config.Experiment" href="config.html#mindthegap.config.Experiment">Experiment</a>,<br>task_name: str) ‑> <a title="mindthegap.reporting.Report" href="reporting.html#mindthegap.reporting.Report">Report</a></span>
 </code></dt>
 <dd>
 <details class="source">
@@ -268,7 +268,7 @@ def eval_task_mllm(cfg: config.Experiment, task_name: str) -&gt; reporting.Repor
 <h2 id="returns">Returns</h2>
 <p>A Report object containing evaluation results for the task.</p></div>
 </dd>
-<dt id="small_data_metrics.newt.get_df"><code class="name flex">
+<dt id="mindthegap.newt.get_df"><code class="name flex">
 <span>def <span class="ident">get_df</span></span>(<span>root: str) ‑> polars.dataframe.frame.DataFrame</span>
 </code></dt>
 <dd>
@@ -285,9 +285,7 @@ def get_df(root: str) -&gt; pl.DataFrame:
     Returns:
         A Polars DataFrame containing the NeWT dataset labels and metadata.
     &#34;&#34;&#34;
-    import polars as pl
-
-    labels_csv_path = os.path.join(root, &#34;newt2021_labels.csv&#34;)
+    labels_csv_path = os.path.expandvars(os.path.join(root, &#34;newt2021_labels.csv&#34;))
 
     if not os.path.isfile(labels_csv_path):
         msg = f&#34;Path &#39;{labels_csv_path}&#39; doesn&#39;t exist. Did you download the Newt dataset?&#34;
@@ -300,8 +298,8 @@ def get_df(root: str) -&gt; pl.DataFrame:
 <h2 id="returns">Returns</h2>
 <p>A Polars DataFrame containing the NeWT dataset labels and metadata.</p></div>
 </dd>
-<dt id="small_data_metrics.newt.get_splits_cvml"><code class="name flex">
-<span>def <span class="ident">get_splits_cvml</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>task_name: str,<br>backbone: <a title="small_data_metrics.cvml.VisionBackbone" href="cvml.html#small_data_metrics.cvml.VisionBackbone">VisionBackbone</a>,<br>rng: numpy.random._generator.Generator) ‑> tuple[<a title="small_data_metrics.newt.FeatureDataset" href="#small_data_metrics.newt.FeatureDataset">FeatureDataset</a>, <a title="small_data_metrics.newt.FeatureDataset" href="#small_data_metrics.newt.FeatureDataset">FeatureDataset</a>]</span>
+<dt id="mindthegap.newt.get_splits_cvml"><code class="name flex">
+<span>def <span class="ident">get_splits_cvml</span></span>(<span>cfg: <a title="mindthegap.config.Experiment" href="config.html#mindthegap.config.Experiment">Experiment</a>,<br>task_name: str,<br>backbone: <a title="mindthegap.cvml.VisionBackbone" href="cvml.html#mindthegap.cvml.VisionBackbone">VisionBackbone</a>,<br>rng: numpy.random._generator.Generator) ‑> tuple[<a title="mindthegap.newt.FeatureDataset" href="#mindthegap.newt.FeatureDataset">FeatureDataset</a>, <a title="mindthegap.newt.FeatureDataset" href="#mindthegap.newt.FeatureDataset">FeatureDataset</a>]</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -404,8 +402,8 @@ def get_splits_cvml(
 </details>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.get_splits_mllm"><code class="name flex">
-<span>def <span class="ident">get_splits_mllm</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>,<br>task_name: str) ‑> tuple[<a title="small_data_metrics.newt.DatasetMllm" href="#small_data_metrics.newt.DatasetMllm">DatasetMllm</a>, <a title="small_data_metrics.newt.DatasetMllm" href="#small_data_metrics.newt.DatasetMllm">DatasetMllm</a>]</span>
+<dt id="mindthegap.newt.get_splits_mllm"><code class="name flex">
+<span>def <span class="ident">get_splits_mllm</span></span>(<span>cfg: <a title="mindthegap.config.Experiment" href="config.html#mindthegap.config.Experiment">Experiment</a>,<br>task_name: str) ‑> tuple[<a title="mindthegap.newt.DatasetMllm" href="#mindthegap.newt.DatasetMllm">DatasetMllm</a>, <a title="mindthegap.newt.DatasetMllm" href="#mindthegap.newt.DatasetMllm">DatasetMllm</a>]</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -480,8 +478,8 @@ def get_splits_mllm(
 <dd>If the NeWT dataset is not found at the specified path.</dd>
 </dl></div>
 </dd>
-<dt id="small_data_metrics.newt.get_task_names"><code class="name flex">
-<span>def <span class="ident">get_task_names</span></span>(<span>cfg: <a title="small_data_metrics.config.Experiment" href="config.html#small_data_metrics.config.Experiment">Experiment</a>) ‑> list[str]</span>
+<dt id="mindthegap.newt.get_task_names"><code class="name flex">
+<span>def <span class="ident">get_task_names</span></span>(<span>cfg: <a title="mindthegap.config.Experiment" href="config.html#mindthegap.config.Experiment">Experiment</a>) ‑> list[str]</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -520,8 +518,8 @@ def get_task_names(cfg: config.Experiment) -&gt; list[str]:
 <h2 id="returns">Returns</h2>
 <p>A list of task names that match the filtering criteria.</p></div>
 </dd>
-<dt id="small_data_metrics.newt.include_task"><code class="name flex">
-<span>def <span class="ident">include_task</span></span>(<span>cfg: <a title="small_data_metrics.config.Newt" href="config.html#small_data_metrics.config.Newt">Newt</a>,<br>task: str,<br>cluster: str,<br>subcluster: str | None) ‑> bool</span>
+<dt id="mindthegap.newt.include_task"><code class="name flex">
+<span>def <span class="ident">include_task</span></span>(<span>cfg: <a title="mindthegap.config.Newt" href="config.html#mindthegap.config.Newt">Newt</a>,<br>task: str,<br>cluster: str,<br>subcluster: str | None) ‑> bool</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -593,7 +591,7 @@ def include_task(
 <h2 id="returns">Returns</h2>
 <p>True if the task should be included, False otherwise</p></div>
 </dd>
-<dt id="small_data_metrics.newt.init_svc"><code class="name flex">
+<dt id="mindthegap.newt.init_svc"><code class="name flex">
 <span>def <span class="ident">init_svc</span></span>(<span>n_train: int)</span>
 </code></dt>
 <dd>
@@ -625,7 +623,7 @@ def include_task(
 </details>
 <div class="desc"><p>Create a new, randomly initialized SVM with a random hyperparameter search over kernel, C and gamma. It uses only 16 jobs in parallel to prevent overloading the CPUs on a shared machine.</p></div>
 </dd>
-<dt id="small_data_metrics.newt.l2_normalize"><code class="name flex">
+<dt id="mindthegap.newt.l2_normalize"><code class="name flex">
 <span>def <span class="ident">l2_normalize</span></span>(<span>features: jaxtyping.Float[ndarray, 'batch dim']) ‑> jaxtyping.Float[ndarray, 'batch dim']</span>
 </code></dt>
 <dd>
@@ -643,7 +641,7 @@ def l2_normalize(
 </details>
 <div class="desc"><p>Normalizes a batch of vectors to have L2 unit norm.</p></div>
 </dd>
-<dt id="small_data_metrics.newt.sample"><code class="name flex">
+<dt id="mindthegap.newt.sample"><code class="name flex">
 <span>def <span class="ident">sample</span></span>(<span>rng: numpy.random._generator.Generator,<br>img_ids: jaxtyping.Shaped[ndarray, 'm'],<br>labels: jaxtyping.Int[ndarray, 'm'],<br>n: int) ‑> tuple[jaxtyping.Shaped[ndarray, 'n'], jaxtyping.Int[ndarray, 'n']]</span>
 </code></dt>
 <dd>
@@ -720,7 +718,7 @@ def sample(
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="small_data_metrics.newt.DatasetMllm"><code class="flex name class">
+<dt id="mindthegap.newt.DatasetMllm"><code class="flex name class">
 <span>class <span class="ident">DatasetMllm</span></span>
 <span>(</span><span>task: str,<br>cluster: str,<br>subcluster: str | None,<br>indices: jaxtyping.Integer[ndarray, 'n_samples'],<br>root: str,<br>df: polars.dataframe.frame.DataFrame,<br>is_train: bool)</span>
 </code></dt>
@@ -853,7 +851,7 @@ mapping to the appropriate indices in the full dataset.</p>
 <li>typing.Generic</li>
 </ul>
 </dd>
-<dt id="small_data_metrics.newt.FeatureDataset"><code class="flex name class">
+<dt id="mindthegap.newt.FeatureDataset"><code class="flex name class">
 <span>class <span class="ident">FeatureDataset</span></span>
 <span>(</span><span>img_ids: list[str],<br>x: jaxtyping.Float[Tensor, 'n dim'],<br>y: jaxtyping.Int[Tensor, 'n'],<br>task: str,<br>cluster: str,<br>subcluster: str | None)</span>
 </code></dt>
@@ -913,33 +911,33 @@ class FeatureDataset:
 </dl></div>
 <h3>Class variables</h3>
 <dl>
-<dt id="small_data_metrics.newt.FeatureDataset.cluster"><code class="name">var <span class="ident">cluster</span> : str</code></dt>
+<dt id="mindthegap.newt.FeatureDataset.cluster"><code class="name">var <span class="ident">cluster</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.FeatureDataset.img_ids"><code class="name">var <span class="ident">img_ids</span> : list[str]</code></dt>
+<dt id="mindthegap.newt.FeatureDataset.img_ids"><code class="name">var <span class="ident">img_ids</span> : list[str]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.FeatureDataset.subcluster"><code class="name">var <span class="ident">subcluster</span> : str | None</code></dt>
+<dt id="mindthegap.newt.FeatureDataset.subcluster"><code class="name">var <span class="ident">subcluster</span> : str | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.FeatureDataset.task"><code class="name">var <span class="ident">task</span> : str</code></dt>
+<dt id="mindthegap.newt.FeatureDataset.task"><code class="name">var <span class="ident">task</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.FeatureDataset.x"><code class="name">var <span class="ident">x</span> : jaxtyping.Float[Tensor, 'n dim']</code></dt>
+<dt id="mindthegap.newt.FeatureDataset.x"><code class="name">var <span class="ident">x</span> : jaxtyping.Float[Tensor, 'n dim']</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.FeatureDataset.y"><code class="name">var <span class="ident">y</span> : jaxtyping.Int[Tensor, 'n']</code></dt>
+<dt id="mindthegap.newt.FeatureDataset.y"><code class="name">var <span class="ident">y</span> : jaxtyping.Int[Tensor, 'n']</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 </dd>
-<dt id="small_data_metrics.newt.FeatureSample"><code class="flex name class">
+<dt id="mindthegap.newt.FeatureSample"><code class="flex name class">
 <span>class <span class="ident">FeatureSample</span></span>
 <span>(</span><span>*args, **kwargs)</span>
 </code></dt>
@@ -978,21 +976,21 @@ class FeatureSample(typing.TypedDict):
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="small_data_metrics.newt.FeatureSample.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
+<dt id="mindthegap.newt.FeatureSample.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.FeatureSample.x"><code class="name">var <span class="ident">x</span> : jaxtyping.Float[Tensor, 'd']</code></dt>
+<dt id="mindthegap.newt.FeatureSample.x"><code class="name">var <span class="ident">x</span> : jaxtyping.Float[Tensor, 'd']</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.FeatureSample.y"><code class="name">var <span class="ident">y</span> : jaxtyping.Int[Tensor, '']</code></dt>
+<dt id="mindthegap.newt.FeatureSample.y"><code class="name">var <span class="ident">y</span> : jaxtyping.Int[Tensor, '']</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 </dd>
-<dt id="small_data_metrics.newt.ImageDataset"><code class="flex name class">
+<dt id="mindthegap.newt.ImageDataset"><code class="flex name class">
 <span>class <span class="ident">ImageDataset</span></span>
 <span>(</span><span>root: str,<br>img_ids: jaxtyping.Shaped[ndarray, 'n'],<br>labels: jaxtyping.Int[ndarray, 'n'],<br>transform=None)</span>
 </code></dt>
@@ -1068,7 +1066,7 @@ class ImageDataset(torch.utils.data.Dataset):
 <li>typing.Generic</li>
 </ul>
 </dd>
-<dt id="small_data_metrics.newt.ImageSample"><code class="flex name class">
+<dt id="mindthegap.newt.ImageSample"><code class="flex name class">
 <span>class <span class="ident">ImageSample</span></span>
 <span>(</span><span>*args, **kwargs)</span>
 </code></dt>
@@ -1107,21 +1105,21 @@ class ImageSample(typing.TypedDict):
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="small_data_metrics.newt.ImageSample.img"><code class="name">var <span class="ident">img</span> : jaxtyping.Float[Tensor, '3 width height']</code></dt>
+<dt id="mindthegap.newt.ImageSample.img"><code class="name">var <span class="ident">img</span> : jaxtyping.Float[Tensor, '3 width height']</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.ImageSample.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
+<dt id="mindthegap.newt.ImageSample.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.ImageSample.label"><code class="name">var <span class="ident">label</span> : jaxtyping.Int[Tensor, '']</code></dt>
+<dt id="mindthegap.newt.ImageSample.label"><code class="name">var <span class="ident">label</span> : jaxtyping.Int[Tensor, '']</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 </dd>
-<dt id="small_data_metrics.newt.SampleMllm"><code class="flex name class">
+<dt id="mindthegap.newt.SampleMllm"><code class="flex name class">
 <span>class <span class="ident">SampleMllm</span></span>
 <span>(</span><span>img_id: str, img_b64: str, label: int, classnames: tuple[str, str])</span>
 </code></dt>
@@ -1234,26 +1232,26 @@ class SampleMllm:
 </dl></div>
 <h3>Class variables</h3>
 <dl>
-<dt id="small_data_metrics.newt.SampleMllm.classnames"><code class="name">var <span class="ident">classnames</span> : tuple[str, str]</code></dt>
+<dt id="mindthegap.newt.SampleMllm.classnames"><code class="name">var <span class="ident">classnames</span> : tuple[str, str]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.SampleMllm.img_b64"><code class="name">var <span class="ident">img_b64</span> : str</code></dt>
+<dt id="mindthegap.newt.SampleMllm.img_b64"><code class="name">var <span class="ident">img_b64</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.SampleMllm.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
+<dt id="mindthegap.newt.SampleMllm.img_id"><code class="name">var <span class="ident">img_id</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.newt.SampleMllm.label"><code class="name">var <span class="ident">label</span> : int</code></dt>
+<dt id="mindthegap.newt.SampleMllm.label"><code class="name">var <span class="ident">label</span> : int</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 <h3>Instance variables</h3>
 <dl>
-<dt id="small_data_metrics.newt.SampleMllm.assistant"><code class="name">prop <span class="ident">assistant</span> : str</code></dt>
+<dt id="mindthegap.newt.SampleMllm.assistant"><code class="name">prop <span class="ident">assistant</span> : str</code></dt>
 <dd>
 <details class="source">
 <summary>
@@ -1272,7 +1270,7 @@ def assistant(self) -&gt; str:
 <h2 id="returns">Returns</h2>
 <p>A string containing the expected response with the correct class name.</p></div>
 </dd>
-<dt id="small_data_metrics.newt.SampleMllm.classname"><code class="name">prop <span class="ident">classname</span> : str</code></dt>
+<dt id="mindthegap.newt.SampleMllm.classname"><code class="name">prop <span class="ident">classname</span> : str</code></dt>
 <dd>
 <details class="source">
 <summary>
@@ -1294,7 +1292,7 @@ def classname(self) -&gt; str:
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="small_data_metrics.newt.SampleMllm.make_user"><code class="name flex">
+<dt id="mindthegap.newt.SampleMllm.make_user"><code class="name flex">
 <span>def <span class="ident">make_user</span></span>(<span>self, rng: random.Random) ‑> str</span>
 </code></dt>
 <dd>
@@ -1325,7 +1323,7 @@ def classname(self) -&gt; str:
 <h2 id="returns">Returns</h2>
 <p>A string prompt asking the model to classify the image.</p></div>
 </dd>
-<dt id="small_data_metrics.newt.SampleMllm.parse_assistant"><code class="name flex">
+<dt id="mindthegap.newt.SampleMllm.parse_assistant"><code class="name flex">
 <span>def <span class="ident">parse_assistant</span></span>(<span>self, assistant: str) ‑> tuple[int, bool]</span>
 </code></dt>
 <dd>
@@ -1359,8 +1357,8 @@ def classname(self) -&gt; str:
 </details>
 <div class="desc"><p>Returns a label, parsed to an integer. Also returns a boolean indicating whether parsing was successful.</p></div>
 </dd>
-<dt id="small_data_metrics.newt.SampleMllm.to_example"><code class="name flex">
-<span>def <span class="ident">to_example</span></span>(<span>self, rng: random.Random) ‑> <a title="small_data_metrics.mllms.Example" href="mllms.html#small_data_metrics.mllms.Example">Example</a></span>
+<dt id="mindthegap.newt.SampleMllm.to_example"><code class="name flex">
+<span>def <span class="ident">to_example</span></span>(<span>self, rng: random.Random) ‑> <a title="mindthegap.mllms.Example" href="mllms.html#mindthegap.mllms.Example">Example</a></span>
 </code></dt>
 <dd>
 <details class="source">
@@ -1403,70 +1401,70 @@ def classname(self) -&gt; str:
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="small_data_metrics" href="index.html">small_data_metrics</a></code></li>
+<li><code><a title="mindthegap" href="index.html">mindthegap</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="two-column">
-<li><code><a title="small_data_metrics.newt.eval_task_cvml" href="#small_data_metrics.newt.eval_task_cvml">eval_task_cvml</a></code></li>
-<li><code><a title="small_data_metrics.newt.eval_task_mllm" href="#small_data_metrics.newt.eval_task_mllm">eval_task_mllm</a></code></li>
-<li><code><a title="small_data_metrics.newt.get_df" href="#small_data_metrics.newt.get_df">get_df</a></code></li>
-<li><code><a title="small_data_metrics.newt.get_splits_cvml" href="#small_data_metrics.newt.get_splits_cvml">get_splits_cvml</a></code></li>
-<li><code><a title="small_data_metrics.newt.get_splits_mllm" href="#small_data_metrics.newt.get_splits_mllm">get_splits_mllm</a></code></li>
-<li><code><a title="small_data_metrics.newt.get_task_names" href="#small_data_metrics.newt.get_task_names">get_task_names</a></code></li>
-<li><code><a title="small_data_metrics.newt.include_task" href="#small_data_metrics.newt.include_task">include_task</a></code></li>
-<li><code><a title="small_data_metrics.newt.init_svc" href="#small_data_metrics.newt.init_svc">init_svc</a></code></li>
-<li><code><a title="small_data_metrics.newt.l2_normalize" href="#small_data_metrics.newt.l2_normalize">l2_normalize</a></code></li>
-<li><code><a title="small_data_metrics.newt.sample" href="#small_data_metrics.newt.sample">sample</a></code></li>
+<li><code><a title="mindthegap.newt.eval_task_cvml" href="#mindthegap.newt.eval_task_cvml">eval_task_cvml</a></code></li>
+<li><code><a title="mindthegap.newt.eval_task_mllm" href="#mindthegap.newt.eval_task_mllm">eval_task_mllm</a></code></li>
+<li><code><a title="mindthegap.newt.get_df" href="#mindthegap.newt.get_df">get_df</a></code></li>
+<li><code><a title="mindthegap.newt.get_splits_cvml" href="#mindthegap.newt.get_splits_cvml">get_splits_cvml</a></code></li>
+<li><code><a title="mindthegap.newt.get_splits_mllm" href="#mindthegap.newt.get_splits_mllm">get_splits_mllm</a></code></li>
+<li><code><a title="mindthegap.newt.get_task_names" href="#mindthegap.newt.get_task_names">get_task_names</a></code></li>
+<li><code><a title="mindthegap.newt.include_task" href="#mindthegap.newt.include_task">include_task</a></code></li>
+<li><code><a title="mindthegap.newt.init_svc" href="#mindthegap.newt.init_svc">init_svc</a></code></li>
+<li><code><a title="mindthegap.newt.l2_normalize" href="#mindthegap.newt.l2_normalize">l2_normalize</a></code></li>
+<li><code><a title="mindthegap.newt.sample" href="#mindthegap.newt.sample">sample</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="small_data_metrics.newt.DatasetMllm" href="#small_data_metrics.newt.DatasetMllm">DatasetMllm</a></code></h4>
+<h4><code><a title="mindthegap.newt.DatasetMllm" href="#mindthegap.newt.DatasetMllm">DatasetMllm</a></code></h4>
 </li>
 <li>
-<h4><code><a title="small_data_metrics.newt.FeatureDataset" href="#small_data_metrics.newt.FeatureDataset">FeatureDataset</a></code></h4>
+<h4><code><a title="mindthegap.newt.FeatureDataset" href="#mindthegap.newt.FeatureDataset">FeatureDataset</a></code></h4>
 <ul class="two-column">
-<li><code><a title="small_data_metrics.newt.FeatureDataset.cluster" href="#small_data_metrics.newt.FeatureDataset.cluster">cluster</a></code></li>
-<li><code><a title="small_data_metrics.newt.FeatureDataset.img_ids" href="#small_data_metrics.newt.FeatureDataset.img_ids">img_ids</a></code></li>
-<li><code><a title="small_data_metrics.newt.FeatureDataset.subcluster" href="#small_data_metrics.newt.FeatureDataset.subcluster">subcluster</a></code></li>
-<li><code><a title="small_data_metrics.newt.FeatureDataset.task" href="#small_data_metrics.newt.FeatureDataset.task">task</a></code></li>
-<li><code><a title="small_data_metrics.newt.FeatureDataset.x" href="#small_data_metrics.newt.FeatureDataset.x">x</a></code></li>
-<li><code><a title="small_data_metrics.newt.FeatureDataset.y" href="#small_data_metrics.newt.FeatureDataset.y">y</a></code></li>
+<li><code><a title="mindthegap.newt.FeatureDataset.cluster" href="#mindthegap.newt.FeatureDataset.cluster">cluster</a></code></li>
+<li><code><a title="mindthegap.newt.FeatureDataset.img_ids" href="#mindthegap.newt.FeatureDataset.img_ids">img_ids</a></code></li>
+<li><code><a title="mindthegap.newt.FeatureDataset.subcluster" href="#mindthegap.newt.FeatureDataset.subcluster">subcluster</a></code></li>
+<li><code><a title="mindthegap.newt.FeatureDataset.task" href="#mindthegap.newt.FeatureDataset.task">task</a></code></li>
+<li><code><a title="mindthegap.newt.FeatureDataset.x" href="#mindthegap.newt.FeatureDataset.x">x</a></code></li>
+<li><code><a title="mindthegap.newt.FeatureDataset.y" href="#mindthegap.newt.FeatureDataset.y">y</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="small_data_metrics.newt.FeatureSample" href="#small_data_metrics.newt.FeatureSample">FeatureSample</a></code></h4>
+<h4><code><a title="mindthegap.newt.FeatureSample" href="#mindthegap.newt.FeatureSample">FeatureSample</a></code></h4>
 <ul class="">
-<li><code><a title="small_data_metrics.newt.FeatureSample.img_id" href="#small_data_metrics.newt.FeatureSample.img_id">img_id</a></code></li>
-<li><code><a title="small_data_metrics.newt.FeatureSample.x" href="#small_data_metrics.newt.FeatureSample.x">x</a></code></li>
-<li><code><a title="small_data_metrics.newt.FeatureSample.y" href="#small_data_metrics.newt.FeatureSample.y">y</a></code></li>
+<li><code><a title="mindthegap.newt.FeatureSample.img_id" href="#mindthegap.newt.FeatureSample.img_id">img_id</a></code></li>
+<li><code><a title="mindthegap.newt.FeatureSample.x" href="#mindthegap.newt.FeatureSample.x">x</a></code></li>
+<li><code><a title="mindthegap.newt.FeatureSample.y" href="#mindthegap.newt.FeatureSample.y">y</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="small_data_metrics.newt.ImageDataset" href="#small_data_metrics.newt.ImageDataset">ImageDataset</a></code></h4>
+<h4><code><a title="mindthegap.newt.ImageDataset" href="#mindthegap.newt.ImageDataset">ImageDataset</a></code></h4>
 </li>
 <li>
-<h4><code><a title="small_data_metrics.newt.ImageSample" href="#small_data_metrics.newt.ImageSample">ImageSample</a></code></h4>
+<h4><code><a title="mindthegap.newt.ImageSample" href="#mindthegap.newt.ImageSample">ImageSample</a></code></h4>
 <ul class="">
-<li><code><a title="small_data_metrics.newt.ImageSample.img" href="#small_data_metrics.newt.ImageSample.img">img</a></code></li>
-<li><code><a title="small_data_metrics.newt.ImageSample.img_id" href="#small_data_metrics.newt.ImageSample.img_id">img_id</a></code></li>
-<li><code><a title="small_data_metrics.newt.ImageSample.label" href="#small_data_metrics.newt.ImageSample.label">label</a></code></li>
+<li><code><a title="mindthegap.newt.ImageSample.img" href="#mindthegap.newt.ImageSample.img">img</a></code></li>
+<li><code><a title="mindthegap.newt.ImageSample.img_id" href="#mindthegap.newt.ImageSample.img_id">img_id</a></code></li>
+<li><code><a title="mindthegap.newt.ImageSample.label" href="#mindthegap.newt.ImageSample.label">label</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="small_data_metrics.newt.SampleMllm" href="#small_data_metrics.newt.SampleMllm">SampleMllm</a></code></h4>
+<h4><code><a title="mindthegap.newt.SampleMllm" href="#mindthegap.newt.SampleMllm">SampleMllm</a></code></h4>
 <ul class="two-column">
-<li><code><a title="small_data_metrics.newt.SampleMllm.assistant" href="#small_data_metrics.newt.SampleMllm.assistant">assistant</a></code></li>
-<li><code><a title="small_data_metrics.newt.SampleMllm.classname" href="#small_data_metrics.newt.SampleMllm.classname">classname</a></code></li>
-<li><code><a title="small_data_metrics.newt.SampleMllm.classnames" href="#small_data_metrics.newt.SampleMllm.classnames">classnames</a></code></li>
-<li><code><a title="small_data_metrics.newt.SampleMllm.img_b64" href="#small_data_metrics.newt.SampleMllm.img_b64">img_b64</a></code></li>
-<li><code><a title="small_data_metrics.newt.SampleMllm.img_id" href="#small_data_metrics.newt.SampleMllm.img_id">img_id</a></code></li>
-<li><code><a title="small_data_metrics.newt.SampleMllm.label" href="#small_data_metrics.newt.SampleMllm.label">label</a></code></li>
-<li><code><a title="small_data_metrics.newt.SampleMllm.make_user" href="#small_data_metrics.newt.SampleMllm.make_user">make_user</a></code></li>
-<li><code><a title="small_data_metrics.newt.SampleMllm.parse_assistant" href="#small_data_metrics.newt.SampleMllm.parse_assistant">parse_assistant</a></code></li>
-<li><code><a title="small_data_metrics.newt.SampleMllm.to_example" href="#small_data_metrics.newt.SampleMllm.to_example">to_example</a></code></li>
+<li><code><a title="mindthegap.newt.SampleMllm.assistant" href="#mindthegap.newt.SampleMllm.assistant">assistant</a></code></li>
+<li><code><a title="mindthegap.newt.SampleMllm.classname" href="#mindthegap.newt.SampleMllm.classname">classname</a></code></li>
+<li><code><a title="mindthegap.newt.SampleMllm.classnames" href="#mindthegap.newt.SampleMllm.classnames">classnames</a></code></li>
+<li><code><a title="mindthegap.newt.SampleMllm.img_b64" href="#mindthegap.newt.SampleMllm.img_b64">img_b64</a></code></li>
+<li><code><a title="mindthegap.newt.SampleMllm.img_id" href="#mindthegap.newt.SampleMllm.img_id">img_id</a></code></li>
+<li><code><a title="mindthegap.newt.SampleMllm.label" href="#mindthegap.newt.SampleMllm.label">label</a></code></li>
+<li><code><a title="mindthegap.newt.SampleMllm.make_user" href="#mindthegap.newt.SampleMllm.make_user">make_user</a></code></li>
+<li><code><a title="mindthegap.newt.SampleMllm.parse_assistant" href="#mindthegap.newt.SampleMllm.parse_assistant">parse_assistant</a></code></li>
+<li><code><a title="mindthegap.newt.SampleMllm.to_example" href="#mindthegap.newt.SampleMllm.to_example">to_example</a></code></li>
 </ul>
 </li>
 </ul>

@@ -1,0 +1,19 @@
+\begin{table*}[t]
+\small
+\centering
+\begin{tabular}{lllrrr}
+\toprule
+Task Cluster & Task Subcluster & Model & Train & Mean & Confidence Interval \\ \midrule
+
+{% for row in data %}
+{{ row.cluster }} & {{ row.subcluster }} & {{ row.model }} & ${{ row.train }}$ & ${{ "%.2f"|format(row.mean) }}$ & $[{{ "%.2f"|format(row.ci_lower) }}, {{ "%.2f"|format(row.ci_upper) }}]$ \\
+{%- if not loop.last and (data[loop.index].cluster != row.cluster or data[loop.index].subcluster != row.subcluster) -%}
+\midrule
+{% endif %}
+{% endfor %}
+\bottomrule
+\end{tabular}
+\caption{
+{{ caption }}
+}\label{tab:{{ label }}}
+\end{table*}

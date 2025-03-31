@@ -10,7 +10,7 @@ import beartype
 import submitit
 import tyro
 
-from small_data_metrics import config, helpers, newt, reporting
+from mindthegap import config, helpers, newt, reporting
 
 log_format = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
 logging.basicConfig(level=logging.INFO, format=log_format)

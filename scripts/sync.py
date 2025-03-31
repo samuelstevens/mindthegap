@@ -1,5 +1,4 @@
-"""
-Syncs all semprobe data between two machines.
+"""Syncs all semprobe data between two machines.
 
 Must run on the machine with remote access permission.
 """
@@ -16,15 +15,13 @@ import tyro
 
 @beartype.beartype
 def from_remote(ssh_host: str, remote_path: str, local_path: str):
-    """
-    Syncs all data from ssh_host:remote_path to local_path using rsync or scp, depending on what is available on your system.
+    """Syncs all data from ssh_host:remote_path to local_path using rsync or scp, depending on what is available on your system.
 
     Args:
         ssh_host: The hostname or IP address of the remote machine to sync from. Can be a user@host, or a HostName found in your .ssh/config file.
         remote_path: The path on the remote machine to the results.sqlite database.
         local_path: The local destination directory where the database will be copied to.
     """
-
     # Create local directory if it doesn't exist
     os.makedirs(local_path, exist_ok=True)
 
@@ -49,8 +46,7 @@ def merge_local(
     schema_path: str = os.path.join("biobench", "schema.sql"),
     overwrite: bool = False,
 ):
-    """
-    Merge two SQLite databases using an existing schema file.
+    """Merge two SQLite databases using an existing schema file.
 
     Args:
         db1: Path to the first database

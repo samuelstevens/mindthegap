@@ -719,7 +719,6 @@ text_label_to_classname = {
         "sick": "sick cassave leaf",
     },
     # ML Photo
-    # (sam) we should change the openai templates for this task
     "ml_photo_rating_12_vs_45_v1": {
         "rating_4_or_5": "obvious bird",
         "rating_1_or_2": "obscured bird",
@@ -814,7 +813,7 @@ text_label_to_classname = {
         "not_carrying_food": "bird",
         "carrying_food": "bird carrying food",
     },
-    # (sam) I used typical here instead of regular
+    # I used typical here instead of regular
     "ml_tag_foraging_waterfowl": {
         "not_waterfowl_foraging": "typical waterfowl",
         "waterfowl_foraging": "foraging waterfowl",
@@ -1394,7 +1393,7 @@ def get_df(root: str) -> pl.DataFrame:
     Returns:
         A Polars DataFrame containing the NeWT dataset labels and metadata.
     """
-    labels_csv_path = os.path.join(root, "newt2021_labels.csv")
+    labels_csv_path = os.path.expandvars(os.path.join(root, "newt2021_labels.csv"))
 
     if not os.path.isfile(labels_csv_path):
         msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset?"

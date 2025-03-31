@@ -461,3 +461,21 @@ Progress is going well.
 But I am running into sufficient errors with MLLMs that I want to introduce checkpointing and an automatic submission system so that I don't re-run experiments.
 This means that each task will be saved to the database as soon as it's done instead of hoping that all newt tasks finish before recording to the database.
 Furthermore, we will not duplicate tasks that have already been run for the given config.
+
+# 03/24/2025
+
+* Check any missing citations
+* NeWT appendix
+* Prompting strategies: remove any references to CoT, multi-turn,e tc.
+* SVM training details
+* MLLM input processing details
+* Explain 0/1 training samples
+* Full table with all results in appendix
+* "The statement “We provide the first comprehensive comparison…” would be stronger if it cited prior ecological or low-data comparisons and explained how the new approach differs or improves upon them."
+* Certain lines appear to cut off the flow—for instance, “While our findings can inform new research directions, we avoid model selection advice…” jumps to concluding remarks without transitional explanation.
+* \cref{fig:tasks}, \cref{fig:hook}, \cref{fig:main}, \cref{fig:flops}, \cref{fig:pre-training} are cited but deserve more explicit mention of x-axes, y-axes, or a bullet point summarizing key messages. Right now, some figure descriptions are fairly terse.
+* “Driven by the compelling promise of strong generalization with minimal examples. However, this…” could be smoothed into a single sentence.
+* Phrases like “We do not fit SVMs without at least one sample per class” appear abruptly, lacking a lead-in.
+* The field of few-shot and low-data learning is substantial (meta-learning, prototypical networks, etc.). The paper never engages with that literature, nor does it contrast the approach with standard few-shot methods (which might be directly relevant).
+* The paper lumps “species, attributes, health, ages, gestalt, context, counting, behavior” into a single approach but does not say if each cluster always has balanced binary tasks (e.g., is “counting” just a binary question like “are there more than 3 animals?” or a multi-label question?). If some tasks are not binary, how are those approached?
+* Multiple spots hint at additional data in the appendices (\cref{app:newt,app:pretraining}) but either do not show them or only provide a single figure or a single note. The main text could benefit from more immediate details without forcing readers to an underdeveloped appendix.

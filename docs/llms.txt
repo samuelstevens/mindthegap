@@ -1,4 +1,4 @@
-# small_data_metrics/__init__.py
+# mindthegap/__init__.py
 
 ```python
 """ """
@@ -10,7 +10,7 @@ cvml.register_vision_backbone("open-clip", third_party_models.OpenClip)
 
 ```
 
-# small_data_metrics/newt.py
+# mindthegap/newt.py
 
 ```python
 """NeWT: Natural World Tasks.
@@ -79,7 +79,7 @@ def eval_task_cvml(cfg: config.Experiment, task_name: str) -> reporting.Report:
 
     backbone = cvml.load_vision_backbone(cfg.model)
 
-    train_dataset, test_dataset = get_splits_cvml(cfg, backbone, task_name, rng_np)
+    train_dataset, test_dataset = get_splits_cvml(cfg, task_name, backbone, rng_np)
     x_train = train_dataset.x.numpy()
     y_train = train_dataset.y.numpy()
     x_test = test_dataset.x.numpy()
@@ -243,10 +243,10 @@ def get_splits_cvml(
     backbone: cvml.VisionBackbone,
     rng: np.random.Generator,
 ) -> tuple[FeatureDataset, FeatureDataset]:
-    df = get_df(cfg).with_row_index()
+    df = get_df(cfg.newt_root).with_row_index()
 
     images_dir_name = "newt2021_images"
-    images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
+    images_dir_path = os.path.join(cfg.newt_root, images_dir_name)
 
     img_transform = backbone.make_img_transform()
     backbone = torch.compile(backbone.to(cfg.device))
@@ -686,10 +686,10 @@ def get_splits_mllm(
     Raises:
         RuntimeError: If the NeWT dataset is not found at the specified path.
     """
-    df = get_df(cfg).with_row_index()
+    df = get_df(cfg.newt_root).with_row_index()
 
     images_dir_name = "newt2021_images"
-    images_dir_path = os.path.join(cfg.newt_data, images_dir_name)
+    images_dir_path = os.path.join(cfg.newt_root, images_dir_name)
 
     task_df = df.filter(pl.col("task") == task_name)
 
@@ -734,7 +734,6 @@ text_label_to_classname = {
         "sick": "sick cassave leaf",
     },
     # ML Photo
-    # (sam) we should change the openai templates for this task
     "ml_photo_rating_12_vs_45_v1": {
         "rating_4_or_5": "obvious bird",
         "rating_1_or_2": "obscured bird",
@@ -829,7 +828,7 @@ text_label_to_classname = {
         "not_carrying_food": "bird",
         "carrying_food": "bird carrying food",
     },
-    # (sam) I used typical here instead of regular
+    # I used typical here instead of regular
     "ml_tag_foraging_waterfowl": {
         "not_waterfowl_foraging": "typical waterfowl",
         "waterfowl_foraging": "foraging waterfowl",
@@ -1401,7 +1400,7 @@ text_label_to_classname = {
 
 
 @beartype.beartype
-def get_df(cfg: config.Experiment) -> pl.DataFrame:
+def get_df(root: str) -> pl.DataFrame:
     """Load the NeWT dataset labels into a Polars DataFrame.
 
     This method reads the NeWT labels CSV file from the configured data directory and returns it as a structured DataFrame for further processing.
@@ -1409,9 +1408,7 @@ def get_df(cfg: config.Experiment) -> pl.DataFrame:
     Returns:
         A Polars DataFrame containing the NeWT dataset labels and metadata.
     """
-    import polars as pl
-
-    labels_csv_path = os.path.join(cfg.newt_data, "newt2021_labels.csv")
+    labels_csv_path = os.path.expandvars(os.path.join(root, "newt2021_labels.csv"))
 
     if not os.path.isfile(labels_csv_path):
         msg = f"Path '{labels_csv_path}' doesn't exist. Did you download the Newt dataset?"
@@ -1422,19 +1419,29 @@ def get_df(cfg: config.Experiment) -> pl.DataFrame:
 
 @beartype.beartype
 def get_task_names(cfg: config.Experiment) -> list[str]:
-    df = get_df(cfg)
+    """Get a filtered list of task names based on configuration settings.
+
+    This function retrieves all unique task names from the NeWT dataset and filters them according to the inclusion/exclusion criteria specified in the configuration.
+
+    Args:
+        cfg: Experiment configuration containing dataset path and filtering criteria.
+
+    Returns:
+        A list of task names that match the filtering criteria.
+    """
+    df = get_df(cfg.newt_root)
     filtered_tasks = []
     for task in df.get_column("task").unique().to_list():
         task_df = df.filter(pl.col("task") == task)
         cluster = task_df.item(row=0, column="task_cluster")
         subcluster = task_df.item(row=0, column="task_subcluster")
-        if _include_task(cfg.newt, task, cluster, subcluster):
+        if include_task(cfg.newt, task, cluster, subcluster):
             filtered_tasks.append(task)
     return filtered_tasks
 
 
 @beartype.beartype
-def _include_task(
+def include_task(
     cfg: config.Newt, task: str, cluster: str, subcluster: str | None
 ) -> bool:
     """Determine if a task should be included based on the configuration.
@@ -1530,7 +1537,7 @@ def sample(
 
 ```
 
-# small_data_metrics/cvml.py
+# mindthegap/cvml.py
 
 ```python
 """Stores all vision backbones.
@@ -1629,7 +1636,7 @@ def list_vision_backbones() -> list[str]:
 
 ```
 
-# small_data_metrics/mllms.py
+# mindthegap/mllms.py
 
 ```python
 """Multimodal LLM interface for interacting with vision-language models.
@@ -1662,6 +1669,49 @@ logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 ###################
 
 
+ImageB64 = typing.NewType("ImageB64", str)
+
+
+@beartype.beartype
+def is_img_b64(value: str) -> typing.TypeGuard[ImageB64]:
+    """Check if a string is a properly formatted base64-encoded image.
+
+    This function acts as a type guard that narrows the type from str to ImageB64.
+
+    Args:
+        value: The string to validate
+
+    Returns:
+        True if the string is a valid base64 image, False otherwise
+    """
+    if not value.startswith("data:image/"):
+        return False
+
+    # Must contain the base64 marker
+    parts = value.split(";base64,", 1)
+    if len(parts) != 2:
+        return False
+
+    mime_part, data_part = parts
+
+    # Check if MIME type is valid
+    valid_mimes = [
+        "data:image/jpeg",
+        "data:image/png",
+        "data:image/webp",
+        "data:image/gif",
+        "data:image/svg+xml",
+    ]
+    if not any(mime_part == mime for mime in valid_mimes):
+        return False
+
+    # Check if the base64 part is not empty and contains valid characters
+    if not data_part:
+        return False
+
+    return True
+
+
 @beartype.beartype
 @dataclasses.dataclass(frozen=True)
 class Example:
@@ -1677,7 +1727,7 @@ class Example:
         assistant: The expected/reference response from the assistant.
     """
 
-    img_b64: str
+    img_b64: ImageB64
     user: str
     assistant: str
 
@@ -1754,6 +1804,9 @@ async def send(
         ValueError: If required settings are missing
         RuntimeError: If LLM call fails
     """
+    assert img_b64.startswith("data:"), "img_b64 must be a data URI"
+    assert user, "user prompt cannot be empty"
+
     messages = make_prompt(cfg, examples, img_b64, user)
     mllm = load_mllm(cfg.model)
 
@@ -2047,29 +2100,7 @@ register_mllm(
 
 ```
 
-# small_data_metrics/persistent_asyncio.py
-
-```python
-import asyncio
-import threading
-
-# Thread-local storage for loops
-_thread_local = threading.local()
-
-
-def run(coro):
-    """Run a coroutine using a persistent event loop for the current thread."""
-    # Get or create the thread's event loop
-    if not hasattr(_thread_local, "loop") or _thread_local.loop.is_closed():
-        _thread_local.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_thread_local.loop)
-
-    # Run the coroutine
-    return _thread_local.loop.run_until_complete(coro)
-
-```
-
-# small_data_metrics/download.py
+# mindthegap/download.py
 
 ```python
 # /// script
@@ -2176,91 +2207,534 @@ if __name__ == "__main__":
 
 ```
 
-# small_data_metrics/test_newt.py
+# mindthegap/persistent_asyncio.py
 
 ```python
-"""Tests for the newt module in small_data_metrics package."""
+import asyncio
+import threading
 
-from small_data_metrics import config, newt
-
-
-def test_include_task_no_filters():
-    """Test include_task with no filters (should include all tasks)."""
-    cfg = config.Newt()
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+# Thread-local storage for loops
+_thread_local = threading.local()
 
 
-def test_include_task_exclude_tasks():
-    """Test include_task with exclude_tasks filter."""
-    cfg = config.Newt(exclude_tasks=["task1", "task2"])
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
-    assert newt.include_task(cfg, "task3", "cluster1", "subcluster1") is True
+def run(coro):
+    """Run a coroutine using a persistent event loop for the current thread."""
+    # Get or create the thread's event loop
+    if not hasattr(_thread_local, "loop") or _thread_local.loop.is_closed():
+        _thread_local.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_thread_local.loop)
 
-
-def test_include_task_exclude_clusters():
-    """Test include_task with exclude_clusters filter."""
-    cfg = config.Newt(exclude_clusters=["cluster1"])
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
-    assert newt.include_task(cfg, "task1", "cluster2", "subcluster1") is True
-
-
-def test_include_task_exclude_subclusters():
-    """Test include_task with exclude_subclusters filter."""
-    cfg = config.Newt(exclude_subclusters=["subcluster1"])
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster2") is True
-    assert newt.include_task(cfg, "task1", "cluster1", None) is True
-
-
-def test_include_task_specific_tasks():
-    """Test include_task with specific tasks inclusion."""
-    cfg = config.Newt(tasks=["task1", "task2"])
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
-    assert newt.include_task(cfg, "task3", "cluster1", "subcluster1") is False
-
-
-def test_include_task_include_clusters():
-    """Test include_task with include_clusters filter."""
-    cfg = config.Newt(include_clusters=["cluster1"])
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
-    assert newt.include_task(cfg, "task1", "cluster2", "subcluster1") is False
-
-
-def test_include_task_include_subclusters():
-    """Test include_task with include_subclusters filter."""
-    cfg = config.Newt(include_subclusters=["subcluster1"])
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster2") is False
-    # When subcluster is None, it can't match any include_subclusters filter
-    # But the current implementation returns True in this case
-    assert newt.include_task(cfg, "task1", "cluster1", None) is False
-
-
-def test_include_task_multiple_inclusion_filters():
-    """Test include_task with multiple inclusion filters."""
-    cfg = config.Newt(
-        tasks=["task2"],
-        include_clusters=["cluster1"],
-        include_subclusters=["subcluster2"],
-    )
-    # Matches cluster
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
-    # Matches subcluster
-    assert newt.include_task(cfg, "task1", "cluster2", "subcluster2") is True
-    # Matches task
-    assert newt.include_task(cfg, "task2", "cluster2", "subcluster3") is True
-    # Matches none
-    assert newt.include_task(cfg, "task3", "cluster3", "subcluster3") is False
-
-
-def test_include_task_inclusion_exclusion_precedence():
-    """Test that exclusion takes precedence over inclusion."""
-    cfg = config.Newt(tasks=["task1"], exclude_tasks=["task1"])
-    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
+    # Run the coroutine
+    return _thread_local.loop.run_until_complete(coro)
 
 ```
 
-# small_data_metrics/third_party_models.py
+# mindthegap/helpers.py
+
+```python
+"""Useful helpers for more than two tasks that don't fit anywhere else."""
+
+import io
+import logging
+import os.path
+import time
+
+import beartype
+import pybase64
+from PIL import Image
+
+
+@beartype.beartype
+class progress:
+    def __init__(self, it, *, every: int = 10, desc: str = "progress", total: int = 0):
+        """Wraps an iterable with a logger like tqdm but doesn't use any control codes to manipulate a progress bar, which doesn't work well when your output is redirected to a file. Instead, simple logging statements are used, but it includes quality-of-life features like iteration speed and predicted time to finish.
+
+        Args:
+            it: Iterable to wrap.
+            every: How many iterations between logging progress.
+            desc: What to name the logger.
+            total: If non-zero, how long the iterable is.
+        """
+        self.it = it
+        self.every = every
+        self.logger = logging.getLogger(desc)
+        self.total = total
+
+    def __iter__(self):
+        start = time.time()
+
+        try:
+            total = len(self)
+        except TypeError:
+            total = None
+
+        for i, obj in enumerate(self.it):
+            yield obj
+
+            if (i + 1) % self.every == 0:
+                now = time.time()
+                duration_s = now - start
+                per_min = (i + 1) / (duration_s / 60)
+
+                if total is not None:
+                    pred_min = (total - (i + 1)) / per_min
+                    self.logger.info(
+                        "%d/%d (%.1f%%) | %.1f it/m (expected finish in %.1fm)",
+                        i + 1,
+                        total,
+                        (i + 1) / total * 100,
+                        per_min,
+                        pred_min,
+                    )
+                else:
+                    self.logger.info("%d/? | %.1f it/m", i + 1, per_min)
+
+    def __len__(self) -> int:
+        if self.total > 0:
+            return self.total
+
+        # Will throw exception.
+        return len(self.it)
+
+
+@beartype.beartype
+def fs_safe(string: str) -> str:
+    """Makes a string safe for filesystems by removing typical special characters."""
+    return string.replace(":", "_").replace("/", "_")
+
+
+@beartype.beartype
+def write_hparam_sweep_plot(
+    task: str,
+    model: str,
+    clf,
+    x: str = "param_ridgeclassifier__alpha",
+    y: str = "mean_test_score",
+) -> str:
+    import matplotlib.pyplot as plt
+    import polars as pl
+
+    df = pl.DataFrame(clf.cv_results_)
+
+    fig, ax = plt.subplots()
+
+    if "n_resources" in df.columns:
+        for n_resources in df.get_column("n_resources").unique().sort():
+            ax.scatter(
+                x=df.filter(pl.col("n_resources") == n_resources)[x],
+                y=df.filter(pl.col("n_resources") == n_resources)[y],
+                label=f"{n_resources} ex.",
+            )
+        fig.legend()
+    else:
+        ax.scatter(x=df[x], y=df[y])
+
+    ax.set_xlabel(x)
+    ax.set_ylabel(y)
+    ax.set_xscale("log")
+    ax.set_title(model)
+
+    fig.tight_layout()
+    filepath = os.path.join("logs", f"{task}_{fs_safe(model)}_hparam.png")
+    fig.savefig(filepath)
+    return filepath
+
+
+@beartype.beartype
+def load_img_b64(path: str) -> str:
+    img = Image.open(path)
+    buf = io.BytesIO()
+    img.save(buf, format="webp")
+    b64 = pybase64.b64encode(buf.getvalue())
+    s64 = b64.decode("utf8")
+    return "data:image/webp;base64," + s64
+
+```
+
+# mindthegap/reporting.py
+
+```python
+"""Reporting utilities for benchmark results.
+
+This module provides classes and functions for recording, storing, and analyzing
+benchmark results, including database integration and visualization helpers.
+"""
+
+import dataclasses
+import json
+import os
+import pathlib
+import socket
+import sqlite3
+import subprocess
+import sys
+import time
+import typing
+
+import beartype
+import torch
+from jaxtyping import jaxtyped
+
+from . import config
+
+schema_fpath = pathlib.Path(__file__).parent / "schema.sql"
+
+
+@beartype.beartype
+def get_conn(cfg: config.Experiment) -> sqlite3.Connection:
+    """Get a SQLite connection to the results database.
+
+    Creates the output directory if it doesn't exist and initializes the database with the schema if needed.
+
+    Returns:
+        An initialized SQLite connection to the results database.
+    """
+    os.makedirs(cfg.report_to, exist_ok=True)
+    conn = sqlite3.connect(
+        os.path.join(cfg.report_to, "results.sqlite"), autocommit=False
+    )
+    with open(schema_fpath) as fd:
+        schema = fd.read()
+    conn.executescript(schema)
+
+    # PRAGMA journal_mode = WAL;   -- Concurrent reads/writes
+    # PRAGMA synchronous = NORMAL; -- Good balance speed/safety
+    # PRAGMA foreign_keys = ON;    -- Enforce FK constraints
+    # PRAGMA busy_timeout = 5000;  -- Wait up to 5000ms before throwing timeout errors
+    # PRAGMA strict = ON;          -- Enforce strict type checking (SQLite ≥ 3.37)
+    # PRAGMA encoding = 'UTF-8';   -- Consistent text encoding
+
+    return conn
+
+
+@beartype.beartype
+def already_ran(
+    conn: sqlite3.Connection,
+    cfg: config.Experiment,
+    task_name: str,
+    task_cluster: str,
+    task_subcluster: str | None,
+) -> bool:
+    """Check if a benchmarking task has already been run for a given configuration.
+
+    This function queries the SQLite database to determine if a report exists for a specific task under the provided experiment configuration. It handles two cases due to a historical bug where many tasks were incorrectly saved with `task_name = 'newt'` instead of their actual names.
+
+    **Bug Explanation**:
+    In earlier versions of the codebase, reports for NeWT tasks were sometimes saved with `task_name = 'newt'` (the benchmark name) instead of the specific task name (e.g., 'ml_age_coopers_hawk'). This occurred because the `Report` object's `task_name` field was not always set correctly in functions like `benchmark_cvml` or `benchmark_mllm`. As a result, the original `report_exists` check, which relied solely on `task_name`, would fail to recognize that these tasks had been run, leading to unnecessary re-runs. To address this, this function performs a fallback check: if no report with the correct `task_name` is found, it looks for a report with `task_name = 'newt'` that matches the task's `task_cluster` and `task_subcluster`. If such a report exists, it assumes the task was part of that cluster/subcluster run.
+
+    Args:
+        conn: SQLite connection object to the results database.
+        cfg: Experiment configuration object containing model details and parameters (e.g., method, org, ckpt, n_train, sampling, and MLLM-specific fields like prompting and cot_enabled).
+        task_name: The actual name of the task to check (e.g., 'ml_age_coopers_hawk').
+        task_cluster: The cluster the task belongs to (e.g., 'ml_age').
+        task_subcluster: The subcluster the task belongs to (e.g., 'age'), or None if not applicable.
+
+    Returns:
+        bool: True if a report exists for the task under the given configuration, False otherwise. Returns True if either:
+              - A report with the correct `task_name` matches the config.
+              - A report with `task_name = 'newt'` matches the config, `task_cluster`, and `task_subcluster`, indicating the task was likely run as part of that group.
+
+    Notes:
+        - The function assumes that if a 'newt' report exists for the task's cluster and subcluster, the task was included in that run. This is a heuristic to handle legacy data and should be validated if partial runs are possible.
+        - Future runs should ensure `task_name` is set correctly to avoid reliance on the fallback check.
+    """
+    cursor = conn.cursor()
+    # Step 1: Check for a report with the correct task_name
+    query_correct = """
+    SELECT COUNT(*) FROM results
+    WHERE task_name IS ?
+    AND model_org IS ?
+    AND model_ckpt IS ?
+    AND exp_cfg ->> '$.n_train' IS ?
+    AND sampling IS ?
+    """
+    values_correct = [
+        task_name,
+        cfg.model.org,
+        cfg.model.ckpt,
+        cfg.n_train,
+        cfg.sampling,
+    ]
+
+    if cfg.model.method == "mllm":
+        query_correct += " AND prompting IS ? AND cot_enabled IS ?"
+        values_correct.extend([cfg.prompting, 1 if cfg.cot_enabled else 0])
+
+    cursor.execute(query_correct, values_correct)
+    (count_correct,) = cursor.fetchone()
+    if count_correct > 0:
+        return True
+
+    # Step 2: If not found, check for 'newt' with matching cluster and subcluster
+    query_newt = """
+    SELECT COUNT(*) FROM results
+    WHERE task_name IS 'newt'
+    AND task_cluster IS ?
+    AND task_subcluster IS ?
+    AND model_org IS ?
+    AND model_ckpt IS ?
+    AND exp_cfg ->> '$.n_train' IS ?
+    AND sampling IS ?
+    """
+    values_newt = [
+        task_cluster,
+        task_subcluster,
+        cfg.model.org,
+        cfg.model.ckpt,
+        cfg.n_train,
+        cfg.sampling,
+    ]
+
+    if cfg.model.method == "mllm":
+        query_newt += " AND prompting IS ? AND cot_enabled IS ?"
+        values_newt.extend([cfg.prompting, 1 if cfg.cot_enabled else 0])
+
+    cursor.execute(query_newt, values_newt)
+    (count_newt,) = cursor.fetchone()
+
+    return count_newt > 0
+
+
+@jaxtyped(typechecker=beartype.beartype)
+@dataclasses.dataclass(frozen=True)
+class Prediction:
+    """An individual test prediction."""
+
+    img_id: str
+    """Whatever kind of ID; used to find the original image/example."""
+    score: float
+    """Test score; typically 0 or 1 for classification tasks."""
+    n_train: int
+    """Number of training examples used in this prection."""
+    info: dict[str, object]
+    """Any additional information included. This might be the original class, the true label, etc."""
+
+    def to_dict(self) -> dict[str, object]:
+        """Convert prediction to a JSON-compatible dictionary."""
+        return dataclasses.asdict(self)
+
+
+def _get_git_hash() -> str:
+    """Returns the hash of the current git commit, assuming we are in a git repo."""
+    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+
+
+def _get_gpu_name() -> str:
+    if torch.cuda.is_available():
+        return torch.cuda.get_device_properties(0).name
+    else:
+        return ""
+
+
+@dataclasses.dataclass
+class Report:
+    """The result of running a benchmark task.
+
+    This class is designed to store results and metadata, with experiment configuration
+    stored in the exp_cfg field to avoid duplication.
+    """
+
+    task_name: str
+    predictions: list[Prediction]
+    n_train: int
+    """Number of training samples *actually* used."""
+
+    exp_cfg: config.Experiment
+
+    _: dataclasses.KW_ONLY
+
+    task_cluster: str | None = None
+    """The cluster this task belongs to (e.g., 'birds', 'plants')."""
+    task_subcluster: str | None = None
+    """The subcluster this task belongs to (e.g., 'songbirds', 'trees')."""
+
+    # MLLM-specific
+    parse_success_rate: float | None = None
+    usd_per_answer: float | None = None
+
+    # CVML-specific
+    classifier: typing.Literal["knn", "svm", "ridge"] | None = None
+
+    # Stuff for trying to reproduce this result. These are filled in by default.
+    argv: list[str] = dataclasses.field(default_factory=lambda: sys.argv)
+    """Command used to get this report."""
+    commit: str = _get_git_hash()
+    """Git commit for this current report."""
+    posix_time: float = dataclasses.field(default_factory=time.time)
+    """Time when this report was constructed."""
+    gpu_name: str = dataclasses.field(default_factory=_get_gpu_name)
+    """Name of the GPU that ran this experiment."""
+    hostname: str = dataclasses.field(default_factory=socket.gethostname)
+    """Machine hostname that ran this experiment."""
+
+    def __repr__(self):
+        """Return a string representation of the Report.
+
+        Returns:
+            A string with task name, model name, and prediction count.
+        """
+        model_name = self.exp_cfg.model.ckpt
+        return f"Report({self.task_name}, {model_name}, {len(self.predictions)} predictions)"
+
+    def to_dict(self) -> dict[str, object]:
+        """Convert the report to a JSON-compatible dictionary. Uses dataclasses.asdict() with custom handling for special types."""
+        dct = dataclasses.asdict(self)
+
+        # Handle special cases
+        dct["exp_cfg"] = self.exp_cfg.to_dict()
+        dct["predictions"] = [p.to_dict() for p in self.predictions]
+
+        return dct
+
+    def write(self, conn: sqlite3.Connection | None = None):
+        """Write this report to a SQLite database.
+
+        Args:
+            conn: SQLite connection to write to
+        """
+        assert self.task_name, ".task_name cannot be empty"
+        assert self.task_cluster, ".task_cluster cannot be empty"
+        assert self.predictions, ".predictions cannot be empty."
+
+        if not conn:
+            conn = self.get_conn()
+
+        # Insert into results table
+        cursor = conn.cursor()
+
+        # Prepare values for results table
+        results_values = {
+            "task_name": self.task_name,
+            "task_cluster": self.task_cluster,
+            "task_subcluster": self.task_subcluster,
+            "n_train": self.n_train,
+            "n_test": len(self.predictions),
+            "sampling": self.exp_cfg.sampling,
+            "model_method": self.exp_cfg.model.method,
+            "model_org": self.exp_cfg.model.org,
+            "model_ckpt": self.exp_cfg.model.ckpt,
+            # MLLM-specific fields
+            "prompting": self.exp_cfg.prompting,
+            "cot_enabled": 1 if self.exp_cfg.cot_enabled else 0,
+            "parse_success_rate": self.parse_success_rate,
+            "usd_per_answer": self.usd_per_answer,
+            # CVML-specific fields
+            "classifier_type": self.classifier,
+            # Configuration and metadata
+            "exp_cfg": json.dumps(self.exp_cfg.to_dict()),
+            "argv": json.dumps(self.argv),
+            "git_commit": self.commit,
+            "posix": int(self.posix_time),
+            "gpu_name": self.gpu_name,
+            "hostname": self.hostname,
+        }
+
+        # Build the SQL query
+        columns = ", ".join(results_values.keys())
+        placeholders = ", ".join(["?"] * len(results_values))
+
+        # Insert into results table
+        cursor.execute(
+            f"INSERT INTO results ({columns}) VALUES ({placeholders})",
+            list(results_values.values()),
+        )
+
+        # Get the rowid of the inserted result
+        result_id = cursor.lastrowid
+
+        # Insert predictions
+        for pred in self.predictions:
+            cursor.execute(
+                "INSERT INTO predictions (img_id, score, n_train, info, result_id) VALUES (?, ?, ?, ?, ?)",
+                (
+                    pred.img_id,
+                    pred.score,
+                    pred.n_train,
+                    json.dumps(pred.info),
+                    result_id,
+                ),
+            )
+
+        # Commit the transaction
+        conn.commit()
+
+
+##########
+# COLORS #
+##########
+
+
+# https://coolors.co/palette/001219-005f73-0a9396-94d2bd-e9d8a6-ee9b00-ca6702-bb3e03-ae2012-9b2226
+
+BLACK_HEX = "001219"
+BLACK_RGB = (0, 18, 25)
+BLACK_RGB01 = tuple(c / 256 for c in BLACK_RGB)
+
+BLUE_HEX = "005f73"
+BLUE_RGB = (0, 95, 115)
+BLUE_RGB01 = tuple(c / 256 for c in BLUE_RGB)
+
+CYAN_HEX = "0a9396"
+CYAN_RGB = (10, 147, 150)
+CYAN_RGB01 = tuple(c / 256 for c in CYAN_RGB)
+
+SEA_HEX = "94d2bd"
+SEA_RGB = (148, 210, 189)
+SEA_RGB01 = tuple(c / 256 for c in SEA_RGB)
+
+CREAM_HEX = "e9d8a6"
+CREAM_RGB = (233, 216, 166)
+CREAM_RGB01 = tuple(c / 256 for c in CREAM_RGB)
+
+GOLD_HEX = "ee9b00"
+GOLD_RGB = (238, 155, 0)
+GOLD_RGB01 = tuple(c / 256 for c in GOLD_RGB)
+
+ORANGE_HEX = "ca6702"
+ORANGE_RGB = (202, 103, 2)
+ORANGE_RGB01 = tuple(c / 256 for c in ORANGE_RGB)
+
+RUST_HEX = "bb3e03"
+RUST_RGB = (187, 62, 3)
+RUST_RGB01 = tuple(c / 256 for c in RUST_RGB)
+
+SCARLET_HEX = "ae2012"
+SCARLET_RGB = (174, 32, 18)
+SCARLET_RGB01 = tuple(c / 256 for c in SCARLET_RGB)
+
+RED_HEX = "9b2226"
+RED_RGB = (155, 34, 38)
+RED_RGB01 = tuple(c / 256 for c in RED_RGB)
+
+ALL_HEX = [
+    BLACK_HEX,
+    BLUE_HEX,
+    CYAN_HEX,
+    SEA_HEX,
+    CREAM_HEX,
+    GOLD_HEX,
+    ORANGE_HEX,
+    RUST_HEX,
+    SCARLET_HEX,
+    RED_HEX,
+]
+
+ALL_RGB01 = [
+    BLACK_RGB01,
+    BLUE_RGB01,
+    CYAN_RGB01,
+    SEA_RGB01,
+    CREAM_RGB01,
+    GOLD_RGB01,
+    ORANGE_RGB01,
+    RUST_RGB01,
+    SCARLET_RGB01,
+    RED_RGB01,
+]
+
+```
+
+# mindthegap/third_party_models.py
 
 ```python
 import logging
@@ -2280,7 +2754,7 @@ def get_cache_dir() -> str:
     """Get the cache directory for downloading models.
 
     Checks environment variables in the following order:
-    1. SMALL_DATA_METRICS_CACHE - Custom cache for this project
+    1. MINDTHEGAP_CACHE - Custom cache for this project
     2. HF_HOME - Hugging Face's home directory
     3. HF_HUB_CACHE - Hugging Face's hub cache
 
@@ -2288,7 +2762,7 @@ def get_cache_dir() -> str:
         The path to the cache directory, or "." (current directory) if none found.
     """
     cache_dir = ""
-    for var in ("SMALL_DATA_METRICS_CACHE", "HF_HOME", "HF_HUB_CACHE"):
+    for var in ("MINDTHEGAP_CACHE", "HF_HOME", "HF_HUB_CACHE"):
         cache_dir = cache_dir or os.environ.get(var, "")
     return cache_dir or "."
 
@@ -2414,501 +2888,94 @@ class TorchvisionModel(cvml.VisionBackbone):
 
 ```
 
-# small_data_metrics/helpers.py
+# mindthegap/test_newt.py
 
 ```python
-"""Useful helpers for more than two tasks that don't fit anywhere else."""
+"""Tests for the newt module."""
 
-import collections.abc
-import io
-import logging
-import os.path
-import time
-
-import beartype
-import pybase64
-from PIL import Image
+from . import config, newt
 
 
-@beartype.beartype
-class progress:
-    def __init__(self, it, *, every: int = 10, desc: str = "progress"):
-        """Wraps an iterable with a logger like tqdm but doesn't use any control codes to manipulate a progress bar, which doesn't work well when your output is redirected to a file. Instead, simple logging statements are used, but it includes quality-of-life features like iteration speed and predicted time to finish.
-
-        Args:
-            it: Iterable to wrap.
-            every: How many iterations between logging progress.
-            desc: What to name the logger.
-        """
-        self.it = it
-        self.every = every
-        self.logger = logging.getLogger(desc)
-
-    def __iter__(self):
-        start = time.time()
-        for i, obj in enumerate(self.it):
-            yield obj
-
-            if (i + 1) % self.every == 0:
-                now = time.time()
-                duration_s = now - start
-                per_min = (i + 1) / (duration_s / 60)
-
-                if isinstance(self.it, collections.abc.Sized):
-                    pred_min = (len(self) - (i + 1)) / per_min
-                    self.logger.info(
-                        "%d/%d (%.1f%%) | %.1f it/m (expected finish in %.1fm)",
-                        i + 1,
-                        len(self),
-                        (i + 1) / len(self) * 100,
-                        per_min,
-                        pred_min,
-                    )
-                else:
-                    self.logger.info("%d/? | %.1f it/m", i + 1, per_min)
-
-    def __len__(self) -> int:
-        return len(self.it)
+def test_include_task_no_filters():
+    """Test include_task with no filters (should include all tasks)."""
+    cfg = config.Newt()
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
 
 
-@beartype.beartype
-def fs_safe(string: str) -> str:
-    """Makes a string safe for filesystems by removing typical special characters."""
-    return string.replace(":", "_").replace("/", "_")
+def test_include_task_exclude_tasks():
+    """Test include_task with exclude_tasks filter."""
+    cfg = config.Newt(exclude_tasks=["task1", "task2"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
+    assert newt.include_task(cfg, "task3", "cluster1", "subcluster1") is True
 
 
-@beartype.beartype
-def write_hparam_sweep_plot(
-    task: str,
-    model: str,
-    clf,
-    x: str = "param_ridgeclassifier__alpha",
-    y: str = "mean_test_score",
-) -> str:
-    import matplotlib.pyplot as plt
-    import polars as pl
-
-    df = pl.DataFrame(clf.cv_results_)
-
-    fig, ax = plt.subplots()
-
-    if "n_resources" in df.columns:
-        for n_resources in df.get_column("n_resources").unique().sort():
-            ax.scatter(
-                x=df.filter(pl.col("n_resources") == n_resources)[x],
-                y=df.filter(pl.col("n_resources") == n_resources)[y],
-                label=f"{n_resources} ex.",
-            )
-        fig.legend()
-    else:
-        ax.scatter(x=df[x], y=df[y])
-
-    ax.set_xlabel(x)
-    ax.set_ylabel(y)
-    ax.set_xscale("log")
-    ax.set_title(model)
-
-    fig.tight_layout()
-    filepath = os.path.join("logs", f"{task}_{fs_safe(model)}_hparam.png")
-    fig.savefig(filepath)
-    return filepath
+def test_include_task_exclude_clusters():
+    """Test include_task with exclude_clusters filter."""
+    cfg = config.Newt(exclude_clusters=["cluster1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
+    assert newt.include_task(cfg, "task1", "cluster2", "subcluster1") is True
 
 
-@beartype.beartype
-def load_img_b64(path: str) -> str:
-    img = Image.open(path)
-    buf = io.BytesIO()
-    img.save(buf, format="webp")
-    b64 = pybase64.b64encode(buf.getvalue())
-    s64 = b64.decode("utf8")
-    return "data:image/webp;base64," + s64
-
-```
-
-# small_data_metrics/reporting.py
-
-```python
-"""Reporting utilities for benchmark results.
-
-This module provides classes and functions for recording, storing, and analyzing
-benchmark results, including database integration and visualization helpers.
-"""
-
-import dataclasses
-import json
-import os
-import pathlib
-import socket
-import sqlite3
-import subprocess
-import sys
-import time
-import typing
-
-import beartype
-import torch
-from jaxtyping import jaxtyped
-
-from . import config
-
-schema_fpath = pathlib.Path(__file__).parent / "schema.sql"
+def test_include_task_exclude_subclusters():
+    """Test include_task with exclude_subclusters filter."""
+    cfg = config.Newt(exclude_subclusters=["subcluster1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster2") is True
+    assert newt.include_task(cfg, "task1", "cluster1", None) is True
 
 
-@beartype.beartype
-def get_conn(cfg: config.Experiment) -> sqlite3.Connection:
-    """Get a SQLite connection to the results database.
+def test_include_task_specific_tasks():
+    """Test include_task with specific tasks inclusion."""
+    cfg = config.Newt(tasks=["task1", "task2"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+    assert newt.include_task(cfg, "task3", "cluster1", "subcluster1") is False
 
-    Creates the output directory if it doesn't exist and initializes the database with the schema if needed.
 
-    Returns:
-        An initialized SQLite connection to the results database.
-    """
-    os.makedirs(cfg.report_to, exist_ok=True)
-    conn = sqlite3.connect(
-        os.path.join(cfg.report_to, "results.sqlite"), autocommit=False
+def test_include_task_include_clusters():
+    """Test include_task with include_clusters filter."""
+    cfg = config.Newt(include_clusters=["cluster1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+    assert newt.include_task(cfg, "task1", "cluster2", "subcluster1") is False
+
+
+def test_include_task_include_subclusters():
+    """Test include_task with include_subclusters filter."""
+    cfg = config.Newt(include_subclusters=["subcluster1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster2") is False
+    # When subcluster is None, it can't match any include_subclusters filter
+    # But the current implementation returns True in this case
+    assert newt.include_task(cfg, "task1", "cluster1", None) is False
+
+
+def test_include_task_multiple_inclusion_filters():
+    """Test include_task with multiple inclusion filters."""
+    cfg = config.Newt(
+        tasks=["task2"],
+        include_clusters=["cluster1"],
+        include_subclusters=["subcluster2"],
     )
-    with open(schema_fpath) as fd:
-        schema = fd.read()
-    conn.executescript(schema)
-    return conn
+    # Matches cluster
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is True
+    # Matches subcluster
+    assert newt.include_task(cfg, "task1", "cluster2", "subcluster2") is True
+    # Matches task
+    assert newt.include_task(cfg, "task2", "cluster2", "subcluster3") is True
+    # Matches none
+    assert newt.include_task(cfg, "task3", "cluster3", "subcluster3") is False
 
 
-@beartype.beartype
-def already_ran(
-    conn: sqlite3.Connection,
-    cfg: config.Experiment,
-    task_name: str,
-    task_cluster: str,
-    task_subcluster: str | None,
-) -> bool:
-    """Check if a benchmarking task has already been run for a given configuration.
-
-    This function queries the SQLite database to determine if a report exists for a specific task under the provided experiment configuration. It handles two cases due to a historical bug where many tasks were incorrectly saved with `task_name = 'newt'` instead of their actual names.
-
-    **Bug Explanation**:
-    In earlier versions of the codebase, reports for NeWT tasks were sometimes saved with `task_name = 'newt'` (the benchmark name) instead of the specific task name (e.g., 'ml_age_coopers_hawk'). This occurred because the `Report` object's `task_name` field was not always set correctly in functions like `benchmark_cvml` or `benchmark_mllm`. As a result, the original `report_exists` check, which relied solely on `task_name`, would fail to recognize that these tasks had been run, leading to unnecessary re-runs. To address this, this function performs a fallback check: if no report with the correct `task_name` is found, it looks for a report with `task_name = 'newt'` that matches the task's `task_cluster` and `task_subcluster`. If such a report exists, it assumes the task was part of that cluster/subcluster run.
-
-    Args:
-        conn: SQLite connection object to the results database.
-        cfg: Experiment configuration object containing model details and parameters (e.g., method, org, ckpt, n_train, sampling, and MLLM-specific fields like prompting and cot_enabled).
-        task_name: The actual name of the task to check (e.g., 'ml_age_coopers_hawk').
-        task_cluster: The cluster the task belongs to (e.g., 'ml_age').
-        task_subcluster: The subcluster the task belongs to (e.g., 'age'), or None if not applicable.
-
-    Returns:
-        bool: True if a report exists for the task under the given configuration, False otherwise. Returns True if either:
-              - A report with the correct `task_name` matches the config.
-              - A report with `task_name = 'newt'` matches the config, `task_cluster`, and `task_subcluster`, indicating the task was likely run as part of that group.
-
-    Notes:
-        - The function assumes that if a 'newt' report exists for the task's cluster and subcluster, the task was included in that run. This is a heuristic to handle legacy data and should be validated if partial runs are possible.
-        - Future runs should ensure `task_name` is set correctly to avoid reliance on the fallback check.
-    """
-    cursor = conn.cursor()
-    # Step 1: Check for a report with the correct task_name
-    query_correct = """
-    SELECT COUNT(*) FROM results
-    WHERE task_name IS ?
-    AND model_org IS ?
-    AND model_ckpt IS ?
-    AND n_train IS ?
-    AND sampling IS ?
-    """
-    values_correct = [
-        task_name,
-        cfg.model.org,
-        cfg.model.ckpt,
-        cfg.n_train,
-        cfg.sampling,
-    ]
-
-    if cfg.model.method == "mllm":
-        query_correct += " AND prompting IS ? AND cot_enabled IS ?"
-        values_correct.extend([cfg.prompting, 1 if cfg.cot_enabled else 0])
-
-    cursor.execute(query_correct, values_correct)
-    (count_correct,) = cursor.fetchone()
-    if count_correct > 0:
-        return True
-
-    # Step 2: If not found, check for 'newt' with matching cluster and subcluster
-    query_newt = """
-    SELECT COUNT(*) FROM results
-    WHERE task_name IS 'newt'
-    AND task_cluster IS ?
-    AND task_subcluster IS ?
-    AND model_org IS ?
-    AND model_ckpt IS ?
-    AND n_train IS ?
-    AND sampling IS ?
-    """
-    values_newt = [
-        task_cluster,
-        task_subcluster,
-        cfg.model.org,
-        cfg.model.ckpt,
-        cfg.n_train,
-        cfg.sampling,
-    ]
-
-    if cfg.model.method == "mllm":
-        query_newt += " AND prompting IS ? AND cot_enabled IS ?"
-        values_newt.extend([cfg.prompting, 1 if cfg.cot_enabled else 0])
-
-    cursor.execute(query_newt, values_newt)
-    (count_newt,) = cursor.fetchone()
-
-    return count_newt > 0
-
-
-@jaxtyped(typechecker=beartype.beartype)
-@dataclasses.dataclass(frozen=True)
-class Prediction:
-    """An individual test prediction."""
-
-    img_id: str
-    """Whatever kind of ID; used to find the original image/example."""
-    score: float
-    """Test score; typically 0 or 1 for classification tasks."""
-    n_train: int
-    """Number of training examples used in this prection."""
-    info: dict[str, object]
-    """Any additional information included. This might be the original class, the true label, etc."""
-
-    def to_dict(self) -> dict[str, object]:
-        """Convert prediction to a JSON-compatible dictionary."""
-        return dataclasses.asdict(self)
-
-
-def _get_git_hash() -> str:
-    """Returns the hash of the current git commit, assuming we are in a git repo."""
-    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
-
-
-def _get_gpu_name() -> str:
-    if torch.cuda.is_available():
-        return torch.cuda.get_device_properties(0).name
-    else:
-        return ""
-
-
-@dataclasses.dataclass
-class Report:
-    """The result of running a benchmark task.
-
-    This class is designed to store results and metadata, with experiment configuration
-    stored in the exp_cfg field to avoid duplication.
-    """
-
-    task_name: str
-    predictions: list[Prediction]
-    n_train: int
-    """Number of training samples *actually* used."""
-
-    exp_cfg: config.Experiment
-
-    _: dataclasses.KW_ONLY
-
-    task_cluster: str | None = None
-    """The cluster this task belongs to (e.g., 'birds', 'plants')."""
-    task_subcluster: str | None = None
-    """The subcluster this task belongs to (e.g., 'songbirds', 'trees')."""
-
-    # MLLM-specific
-    parse_success_rate: float | None = None
-    usd_per_answer: float | None = None
-
-    # CVML-specific
-    classifier: typing.Literal["knn", "svm", "ridge"] | None = None
-
-    # Stuff for trying to reproduce this result. These are filled in by default.
-    argv: list[str] = dataclasses.field(default_factory=lambda: sys.argv)
-    """Command used to get this report."""
-    commit: str = _get_git_hash()
-    """Git commit for this current report."""
-    posix_time: float = dataclasses.field(default_factory=time.time)
-    """Time when this report was constructed."""
-    gpu_name: str = dataclasses.field(default_factory=_get_gpu_name)
-    """Name of the GPU that ran this experiment."""
-    hostname: str = dataclasses.field(default_factory=socket.gethostname)
-    """Machine hostname that ran this experiment."""
-
-    def __repr__(self):
-        """Return a string representation of the Report.
-
-        Returns:
-            A string with task name, model name, and prediction count.
-        """
-        model_name = self.exp_cfg.model.ckpt
-        return f"Report({self.task_name}, {model_name}, {len(self.predictions)} predictions)"
-
-    def to_dict(self) -> dict[str, object]:
-        """Convert the report to a JSON-compatible dictionary. Uses dataclasses.asdict() with custom handling for special types."""
-        dct = dataclasses.asdict(self)
-
-        # Handle special cases
-        dct["exp_cfg"] = self.exp_cfg.to_dict()
-        dct["predictions"] = [p.to_dict() for p in self.predictions]
-
-        return dct
-
-    def write(self, conn: sqlite3.Connection | None = None):
-        """Write this report to a SQLite database.
-
-        Args:
-            conn: SQLite connection to write to
-        """
-        if not conn:
-            conn = self.get_conn()
-
-        # Insert into results table
-        cursor = conn.cursor()
-
-        # Determine method-specific fields
-        model_method = (
-            "mllm" if self.exp_cfg.model.org in ["anthropic", "openai"] else "cvml"
-        )
-
-        # Prepare values for results table
-        results_values = {
-            "task_name": self.task_name,
-            "task_cluster": self.task_cluster,
-            "task_subcluster": self.task_subcluster,
-            "n_train": self.n_train,
-            "n_test": len(self.predictions),
-            "sampling": self.exp_cfg.sampling,
-            "model_method": self.exp_cfg.model.method,
-            "model_org": self.exp_cfg.model.org,
-            "model_ckpt": self.exp_cfg.model.ckpt,
-            # MLLM-specific fields
-            "prompting": self.exp_cfg.prompting
-            if hasattr(self.exp_cfg, "prompting")
-            else None,
-            "cot_enabled": 1
-            if hasattr(self.exp_cfg, "cot") and self.exp_cfg.cot
-            else 0,
-            "parse_success_rate": self.parse_success_rate,
-            "usd_per_answer": self.usd_per_answer,
-            # CVML-specific fields
-            "classifier_type": self.classifier,
-            # Configuration and metadata
-            "exp_cfg": json.dumps(self.exp_cfg.to_dict()),
-            "argv": json.dumps(self.argv),
-            "git_commit": self.commit,
-            "posix": int(self.posix_time),
-            "gpu_name": self.gpu_name,
-            "hostname": self.hostname,
-        }
-
-        # Build the SQL query
-        columns = ", ".join(results_values.keys())
-        placeholders = ", ".join(["?"] * len(results_values))
-
-        # Insert into results table
-        cursor.execute(
-            f"INSERT INTO results ({columns}) VALUES ({placeholders})",
-            list(results_values.values()),
-        )
-
-        # Get the rowid of the inserted result
-        result_id = cursor.lastrowid
-
-        # Insert predictions
-        for pred in self.predictions:
-            cursor.execute(
-                "INSERT INTO predictions (img_id, score, n_train, info, result_id) VALUES (?, ?, ?, ?, ?)",
-                (
-                    pred.img_id,
-                    pred.score,
-                    pred.n_train,
-                    json.dumps(pred.info),
-                    result_id,
-                ),
-            )
-
-        # Commit the transaction
-        conn.commit()
-
-
-##########
-# COLORS #
-##########
-
-
-# https://coolors.co/palette/001219-005f73-0a9396-94d2bd-e9d8a6-ee9b00-ca6702-bb3e03-ae2012-9b2226
-
-BLACK_HEX = "001219"
-BLACK_RGB = (0, 18, 25)
-BLACK_RGB01 = tuple(c / 256 for c in BLACK_RGB)
-
-BLUE_HEX = "005f73"
-BLUE_RGB = (0, 95, 115)
-BLUE_RGB01 = tuple(c / 256 for c in BLUE_RGB)
-
-CYAN_HEX = "0a9396"
-CYAN_RGB = (10, 147, 150)
-CYAN_RGB01 = tuple(c / 256 for c in CYAN_RGB)
-
-SEA_HEX = "94d2bd"
-SEA_RGB = (148, 210, 189)
-SEA_RGB01 = tuple(c / 256 for c in SEA_RGB)
-
-CREAM_HEX = "e9d8a6"
-CREAM_RGB = (233, 216, 166)
-CREAM_RGB01 = tuple(c / 256 for c in CREAM_RGB)
-
-GOLD_HEX = "ee9b00"
-GOLD_RGB = (238, 155, 0)
-GOLD_RGB01 = tuple(c / 256 for c in GOLD_RGB)
-
-ORANGE_HEX = "ca6702"
-ORANGE_RGB = (202, 103, 2)
-ORANGE_RGB01 = tuple(c / 256 for c in ORANGE_RGB)
-
-RUST_HEX = "bb3e03"
-RUST_RGB = (187, 62, 3)
-RUST_RGB01 = tuple(c / 256 for c in RUST_RGB)
-
-SCARLET_HEX = "ae2012"
-SCARLET_RGB = (174, 32, 18)
-SCARLET_RGB01 = tuple(c / 256 for c in SCARLET_RGB)
-
-RED_HEX = "9b2226"
-RED_RGB = (155, 34, 38)
-RED_RGB01 = tuple(c / 256 for c in RED_RGB)
-
-ALL_HEX = [
-    BLACK_HEX,
-    BLUE_HEX,
-    CYAN_HEX,
-    SEA_HEX,
-    CREAM_HEX,
-    GOLD_HEX,
-    ORANGE_HEX,
-    RUST_HEX,
-    SCARLET_HEX,
-    RED_HEX,
-]
-
-ALL_RGB01 = [
-    BLACK_RGB01,
-    BLUE_RGB01,
-    CYAN_RGB01,
-    SEA_RGB01,
-    CREAM_RGB01,
-    GOLD_RGB01,
-    ORANGE_RGB01,
-    RUST_RGB01,
-    SCARLET_RGB01,
-    RED_RGB01,
-]
+def test_include_task_inclusion_exclusion_precedence():
+    """Test that exclusion takes precedence over inclusion."""
+    cfg = config.Newt(tasks=["task1"], exclude_tasks=["task1"])
+    assert newt.include_task(cfg, "task1", "cluster1", "subcluster1") is False
 
 ```
 
-# small_data_metrics/config.py
+# mindthegap/config.py
 
 ```python
-"""Configuration management for small data metrics experiments.
+"""Configuration management for small data experiments.
 
 This module provides dataclasses and utilities for loading, managing, and
 validating experiment configurations from TOML files.
@@ -3017,7 +3084,7 @@ class Experiment:
     seed: int = 17
     """Radnom seed."""
 
-    newt_data: str = ""
+    newt_root: str = ""
     newt: Newt = dataclasses.field(default_factory=Newt)
 
     def to_dict(self) -> dict[str, object]:
@@ -3085,6 +3152,7 @@ def load(path: str) -> list[Experiment]:
 ```python
 """Entrypoint for running benchmarking."""
 
+import collections
 import logging
 import os
 import resource
@@ -3094,7 +3162,7 @@ import beartype
 import submitit
 import tyro
 
-from small_data_metrics import config, helpers, newt, reporting
+from mindthegap import config, helpers, newt, reporting
 
 log_format = "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s"
 logging.basicConfig(level=logging.INFO, format=log_format)
@@ -3102,7 +3170,7 @@ logger = logging.getLogger("benchmark.py")
 
 
 @beartype.beartype
-def benchmark(cfg: str):
+def benchmark(cfg: str, dry_run: bool = True):
     """Launch all jobs, using either a local GPU or a Slurm cluster. Then report results and save to disk."""
     cfgs = config.load(cfg)
 
@@ -3149,7 +3217,7 @@ def benchmark(cfg: str):
     # Load all task names -> (cluster, subclusters)
     task_mapping = {
         task: (cluster, subcluster)
-        for task, cluster, subcluster in newt.get_df(cfg)
+        for task, cluster, subcluster in newt.get_df(cfg.newt_root)
         .select("task", "task_cluster", "task_subcluster")
         .group_by("task")
         .first()
@@ -3168,6 +3236,8 @@ def benchmark(cfg: str):
             ):
                 n_skipped += 1
                 continue
+            elif dry_run:
+                jobs.append(cfg)
             else:
                 if cfg.model.method == "cvml":
                     fn = newt.eval_task_cvml
@@ -3178,6 +3248,23 @@ def benchmark(cfg: str):
 
                 job = executor.submit(fn, cfg, task_name)
                 jobs.append(job)
+
+    if dry_run:
+        # Summarize the jobs by model and training examples
+        model_counts = collections.defaultdict(int)
+        for job_cfg in jobs:
+            key = (job_cfg.model.ckpt, job_cfg.n_train)
+            model_counts[key] += 1
+
+        # Print summary table
+        logger.info("Job Summary:")
+        logger.info("%-40s | %-10s | %-5s", "Model", "Train Size", "Count")
+        logger.info("-" * 61)
+        for (model, n_train), count in sorted(model_counts.items()):
+            logger.info("%-40s | %-10d | %-5d", model, n_train, count)
+        logger.info("-" * 61)
+        logger.info("Total jobs to run: %d", len(jobs))
+        return
 
     logger.info("Submitted %d jobs (skipped %d).", len(jobs), n_skipped)
 
@@ -3204,23 +3291,38 @@ if __name__ == "__main__":
 
 ```
 
-# Small Data Metrics
+# Mind the Gap: Evaluating Vision Systems in Small Data Applications
 
-Models
+Reproducing our work:
 
-* Gemini Flash 2.0
-* Gemini Flash 1.5 8B
-* GPT-4o
-* GPT-4o-mini
-* Claude Sonnet 3.7
-* Claude Haiku 3.7
-* Qwen2-VL 7B
-* Qwen2-VL 72B
-* Llama 3.2 90B Vision
-* Pixtral 12B (Mistral)
+With [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
 
-* DINOv2
-* CLIP
-* SigLIP
-* SigLIP 2
-* ResNet50 on ImageNet (ResNet Strikes Back)
+```sh
+uv run benchmark.py --help
+```
+
+This will run the benchmark script, which will force a `.venv` to be created.
+
+Set the $NFS and $USER variables or edit the configs in `configs/*.toml` to point towards your NeWt data.
+You can download the data using:
+
+```sh
+uv run mindthegap/download.py --help
+```
+
+Then run
+
+```sh
+uv run benchmark.py --cfg configs/mllms.toml
+```
+
+This will create the results database and check if you have any results (you probably don't).
+It will report what jobs it has to run.
+
+To actually run the jobs, use:
+
+```sh
+uv run benchmark.py --cfg configs/mllms.toml --no-dry-run
+```
+
+To recreate our figures, run the `notebookes/figures.py` notebook with [marimo](https://github.com/marimo-team/marimo).

@@ -1,5 +1,5 @@
 [project]
-name = "small-data-metrics"
+name = "mindthegap"
 version = "0.1.0"
 description = "Benchmark for evaluating in the small data regime."
 readme = "README.md"
@@ -20,6 +20,7 @@ dependencies = [
     "submitit>=1.5.2",
     "litellm>=1.60.8",
     "pybase64>=1.4.0",
+    "pytest>=8.3.5",
 ]
 
 [tool.ruff.lint]
@@ -29,8 +30,3 @@ ignore = ["F722", "E402", "E501"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
-
-[tool.uv]
-dev-dependencies = [
-    "pytest>=8.3.5",
-]

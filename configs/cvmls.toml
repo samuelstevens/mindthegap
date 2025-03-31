@@ -1,59 +1,45 @@
-n_train = [10, 30, 100, 300, -1]
+n_train = [3, 10, 30, 100, 300, -1]
 n_test = [-1]
 
-newt_data = "/research/nfs_su_809/workspace/stevens.994/datasets/newt"
-
-ssl = false
-
-# CLIP
-[[models]]
-method = "cvml"
-org = "open-clip"
-ckpt = "ViT-B-16/openai"
-[[models]]
-method = "cvml"
-org = "open-clip"
-ckpt = "ViT-L-14/openai"
-[[models]]
-method = "cvml"
-org = "open-clip"
-ckpt = "ViT-L-14-336/openai"
+newt_root = "/$NFS/workspace/$USER/datasets/newt"
 
 # SigLIP
 [[models]]
 method = "cvml"
 org = "open-clip"
+ckpt = "ViT-B-16-SigLIP/webli"
+
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-B-16-SigLIP-256/webli"
+
+[[models]]
+method = "cvml"
+org = "open-clip"
 ckpt = "ViT-B-16-SigLIP-384/webli"
+
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-B-16-SigLIP-512/webli"
+
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-L-16-SigLIP-256/webli"
+
 [[models]]
 method = "cvml"
 org = "open-clip"
 ckpt = "ViT-L-16-SigLIP-384/webli"
+
+[[models]]
+method = "cvml"
+org = "open-clip"
+ckpt = "ViT-SO400M-14-SigLIP/webli"
+
 [[models]]
 method = "cvml"
 org = "open-clip"
 ckpt = "ViT-SO400M-14-SigLIP-384/webli"
-
-# DINOv2
-[[models]]
-method = "cvml"
-org = "timm-vit"
-ckpt = "vit_small_patch14_reg4_dinov2.lvd142m"
-[[models]]
-method = "cvml"
-org = "timm-vit"
-ckpt = "vit_base_patch14_reg4_dinov2.lvd142m"
-[[models]]
-method = "cvml"
-org = "timm-vit"
-ckpt = "vit_large_patch14_reg4_dinov2.lvd142m"
-[[models]]
-method = "cvml"
-org = "timm-vit"
-ckpt = "vit_giant_patch14_reg4_dinov2.lvd142m"
-
-# BioCLIP
-
-[[models]]
-method = "cvml"
-org = "open-clip"
-ckpt = "hf-hub:imageomics/bioclip"

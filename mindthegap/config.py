@@ -1,4 +1,4 @@
-"""Configuration management for small data metrics experiments.
+"""Configuration management for small data experiments.
 
 This module provides dataclasses and utilities for loading, managing, and
 validating experiment configurations from TOML files.

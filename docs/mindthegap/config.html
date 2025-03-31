@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.5">
-<title>small_data_metrics.config API documentation</title>
-<meta name="description" content="Configuration management for small data metrics experiments …">
+<title>mindthegap.config API documentation</title>
+<meta name="description" content="Configuration management for small data experiments …">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
@@ -35,10 +35,10 @@ el.replaceWith(d);
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>small_data_metrics.config</code></h1>
+<h1 class="title">Module <code>mindthegap.config</code></h1>
 </header>
 <section id="section-intro">
-<p>Configuration management for small data metrics experiments.</p>
+<p>Configuration management for small data experiments.</p>
 <p>This module provides dataclasses and utilities for loading, managing, and
 validating experiment configurations from TOML files.</p>
 </section>
@@ -49,8 +49,8 @@ validating experiment configurations from TOML files.</p>
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="small_data_metrics.config.load"><code class="name flex">
-<span>def <span class="ident">load</span></span>(<span>path: str) ‑> list[<a title="small_data_metrics.config.Experiment" href="#small_data_metrics.config.Experiment">Experiment</a>]</span>
+<dt id="mindthegap.config.load"><code class="name flex">
+<span>def <span class="ident">load</span></span>(<span>path: str) ‑> list[<a title="mindthegap.config.Experiment" href="#mindthegap.config.Experiment">Experiment</a>]</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -114,9 +114,9 @@ validating experiment configurations from TOML files.</p>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="small_data_metrics.config.Experiment"><code class="flex name class">
+<dt id="mindthegap.config.Experiment"><code class="flex name class">
 <span>class <span class="ident">Experiment</span></span>
-<span>(</span><span>model: <a title="small_data_metrics.config.Model" href="#small_data_metrics.config.Model">Model</a>,<br>n_train: int = -1,<br>n_test: int = -1,<br>sampling: Literal['uniform', 'balanced'] = 'uniform',<br>device: Literal['cpu', 'mps', 'cuda'] = 'cuda',<br>debug: bool = False,<br>ssl: bool = True,<br>report_to: str = './results',<br>graph: bool = True,<br>graph_to: str = './graphs',<br>log_to: str = './logs',<br>temp: float = 0.0,<br>prompting: Literal['single', 'multi'] = 'single',<br>cot_enabled: bool = False,<br>parallel: int = 1,<br>slurm: bool = False,<br>slurm_acct: str = '',<br>batch_size: int = 256,<br>n_workers: int = 8,<br>seed: int = 17,<br>newt_root: str = '',<br>newt: <a title="small_data_metrics.config.Newt" href="#small_data_metrics.config.Newt">Newt</a> = &lt;factory&gt;)</span>
+<span>(</span><span>model: <a title="mindthegap.config.Model" href="#mindthegap.config.Model">Model</a>,<br>n_train: int = -1,<br>n_test: int = -1,<br>sampling: Literal['uniform', 'balanced'] = 'uniform',<br>device: Literal['cpu', 'mps', 'cuda'] = 'cuda',<br>debug: bool = False,<br>ssl: bool = True,<br>report_to: str = './results',<br>graph: bool = True,<br>graph_to: str = './graphs',<br>log_to: str = './logs',<br>temp: float = 0.0,<br>prompting: Literal['single', 'multi'] = 'single',<br>cot_enabled: bool = False,<br>parallel: int = 1,<br>slurm: bool = False,<br>slurm_acct: str = '',<br>batch_size: int = 256,<br>n_workers: int = 8,<br>seed: int = 17,<br>newt_root: str = '',<br>newt: <a title="mindthegap.config.Newt" href="#mindthegap.config.Newt">Newt</a> = &lt;factory&gt;)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -190,98 +190,98 @@ class Experiment:
 <p>This class defines all parameters needed to run a benchmark experiment, including model selection, dataset configuration, evaluation settings, and output preferences.</p></div>
 <h3>Class variables</h3>
 <dl>
-<dt id="small_data_metrics.config.Experiment.batch_size"><code class="name">var <span class="ident">batch_size</span> : int</code></dt>
+<dt id="mindthegap.config.Experiment.batch_size"><code class="name">var <span class="ident">batch_size</span> : int</code></dt>
 <dd>
 <div class="desc"><p>Batch size for computer vision model.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.cot_enabled"><code class="name">var <span class="ident">cot_enabled</span> : bool</code></dt>
+<dt id="mindthegap.config.Experiment.cot_enabled"><code class="name">var <span class="ident">cot_enabled</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.debug"><code class="name">var <span class="ident">debug</span> : bool</code></dt>
+<dt id="mindthegap.config.Experiment.debug"><code class="name">var <span class="ident">debug</span> : bool</code></dt>
 <dd>
 <div class="desc"><p>whether to run in debug mode.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.device"><code class="name">var <span class="ident">device</span> : Literal['cpu', 'mps', 'cuda']</code></dt>
+<dt id="mindthegap.config.Experiment.device"><code class="name">var <span class="ident">device</span> : Literal['cpu', 'mps', 'cuda']</code></dt>
 <dd>
 <div class="desc"><p>which kind of accelerator to use.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.graph"><code class="name">var <span class="ident">graph</span> : bool</code></dt>
+<dt id="mindthegap.config.Experiment.graph"><code class="name">var <span class="ident">graph</span> : bool</code></dt>
 <dd>
 <div class="desc"><p>whether to make graphs.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.graph_to"><code class="name">var <span class="ident">graph_to</span> : str</code></dt>
+<dt id="mindthegap.config.Experiment.graph_to"><code class="name">var <span class="ident">graph_to</span> : str</code></dt>
 <dd>
 <div class="desc"><p>where to save graphs to.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.log_to"><code class="name">var <span class="ident">log_to</span> : str</code></dt>
+<dt id="mindthegap.config.Experiment.log_to"><code class="name">var <span class="ident">log_to</span> : str</code></dt>
 <dd>
 <div class="desc"><p>where to save logs to.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.model"><code class="name">var <span class="ident">model</span> : <a title="small_data_metrics.config.Model" href="#small_data_metrics.config.Model">Model</a></code></dt>
+<dt id="mindthegap.config.Experiment.model"><code class="name">var <span class="ident">model</span> : <a title="mindthegap.config.Model" href="#mindthegap.config.Model">Model</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.n_test"><code class="name">var <span class="ident">n_test</span> : int</code></dt>
+<dt id="mindthegap.config.Experiment.n_test"><code class="name">var <span class="ident">n_test</span> : int</code></dt>
 <dd>
 <div class="desc"><p>Number of test samples. Negative number means use all of them.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.n_train"><code class="name">var <span class="ident">n_train</span> : int</code></dt>
+<dt id="mindthegap.config.Experiment.n_train"><code class="name">var <span class="ident">n_train</span> : int</code></dt>
 <dd>
 <div class="desc"><p>Number of maximum training samples. Negative number means use all of them.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.n_workers"><code class="name">var <span class="ident">n_workers</span> : int</code></dt>
+<dt id="mindthegap.config.Experiment.n_workers"><code class="name">var <span class="ident">n_workers</span> : int</code></dt>
 <dd>
 <div class="desc"><p>Number of dataloader worker processes.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.newt"><code class="name">var <span class="ident">newt</span> : <a title="small_data_metrics.config.Newt" href="#small_data_metrics.config.Newt">Newt</a></code></dt>
+<dt id="mindthegap.config.Experiment.newt"><code class="name">var <span class="ident">newt</span> : <a title="mindthegap.config.Newt" href="#mindthegap.config.Newt">Newt</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.newt_root"><code class="name">var <span class="ident">newt_root</span> : str</code></dt>
+<dt id="mindthegap.config.Experiment.newt_root"><code class="name">var <span class="ident">newt_root</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.parallel"><code class="name">var <span class="ident">parallel</span> : int</code></dt>
+<dt id="mindthegap.config.Experiment.parallel"><code class="name">var <span class="ident">parallel</span> : int</code></dt>
 <dd>
 <div class="desc"><p>Number of parallel requests per second to MLLM service providers.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.prompting"><code class="name">var <span class="ident">prompting</span> : Literal['single', 'multi']</code></dt>
+<dt id="mindthegap.config.Experiment.prompting"><code class="name">var <span class="ident">prompting</span> : Literal['single', 'multi']</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.report_to"><code class="name">var <span class="ident">report_to</span> : str</code></dt>
+<dt id="mindthegap.config.Experiment.report_to"><code class="name">var <span class="ident">report_to</span> : str</code></dt>
 <dd>
 <div class="desc"><p>where to save reports to.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.sampling"><code class="name">var <span class="ident">sampling</span> : Literal['uniform', 'balanced']</code></dt>
+<dt id="mindthegap.config.Experiment.sampling"><code class="name">var <span class="ident">sampling</span> : Literal['uniform', 'balanced']</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.seed"><code class="name">var <span class="ident">seed</span> : int</code></dt>
+<dt id="mindthegap.config.Experiment.seed"><code class="name">var <span class="ident">seed</span> : int</code></dt>
 <dd>
 <div class="desc"><p>Radnom seed.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.slurm"><code class="name">var <span class="ident">slurm</span> : bool</code></dt>
+<dt id="mindthegap.config.Experiment.slurm"><code class="name">var <span class="ident">slurm</span> : bool</code></dt>
 <dd>
 <div class="desc"><p>whether to use submitit to run jobs on a slurm cluster.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.slurm_acct"><code class="name">var <span class="ident">slurm_acct</span> : str</code></dt>
+<dt id="mindthegap.config.Experiment.slurm_acct"><code class="name">var <span class="ident">slurm_acct</span> : str</code></dt>
 <dd>
 <div class="desc"><p>slurm account string.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.ssl"><code class="name">var <span class="ident">ssl</span> : bool</code></dt>
+<dt id="mindthegap.config.Experiment.ssl"><code class="name">var <span class="ident">ssl</span> : bool</code></dt>
 <dd>
 <div class="desc"><p>Use SSL when connecting to remote servers to download checkpoints; use &ndash;no-ssl if your machine has certificate issues. See <code>biobench.third_party_models.get_ssl()</code> for a discussion of how this works.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Experiment.temp"><code class="name">var <span class="ident">temp</span> : float</code></dt>
+<dt id="mindthegap.config.Experiment.temp"><code class="name">var <span class="ident">temp</span> : float</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="small_data_metrics.config.Experiment.to_dict"><code class="name flex">
+<dt id="mindthegap.config.Experiment.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self) ‑> dict[str, object]</span>
 </code></dt>
 <dd>
@@ -303,7 +303,7 @@ class Experiment:
 </dd>
 </dl>
 </dd>
-<dt id="small_data_metrics.config.Model"><code class="flex name class">
+<dt id="mindthegap.config.Model"><code class="flex name class">
 <span>class <span class="ident">Model</span></span>
 <span>(</span><span>method: Literal['cvml', 'mllm'], org: str, ckpt: str)</span>
 </code></dt>
@@ -342,21 +342,21 @@ class Model:
 </dl></div>
 <h3>Class variables</h3>
 <dl>
-<dt id="small_data_metrics.config.Model.ckpt"><code class="name">var <span class="ident">ckpt</span> : str</code></dt>
+<dt id="mindthegap.config.Model.ckpt"><code class="name">var <span class="ident">ckpt</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.config.Model.method"><code class="name">var <span class="ident">method</span> : Literal['cvml', 'mllm']</code></dt>
+<dt id="mindthegap.config.Model.method"><code class="name">var <span class="ident">method</span> : Literal['cvml', 'mllm']</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="small_data_metrics.config.Model.org"><code class="name">var <span class="ident">org</span> : str</code></dt>
+<dt id="mindthegap.config.Model.org"><code class="name">var <span class="ident">org</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 </dd>
-<dt id="small_data_metrics.config.Newt"><code class="flex name class">
+<dt id="mindthegap.config.Newt"><code class="flex name class">
 <span>class <span class="ident">Newt</span></span>
 <span>(</span><span>tasks: list[str] | None = None,<br>include_clusters: list[str] | None = None,<br>include_subclusters: list[str] | None = None,<br>exclude_tasks: list[str] | None = None,<br>exclude_clusters: list[str] | None = None,<br>exclude_subclusters: list[str] | None = None)</span>
 </code></dt>
@@ -392,27 +392,27 @@ class Newt:
 <div class="desc"><p>Configuration options specific to the NeWT benchmark.</p></div>
 <h3>Class variables</h3>
 <dl>
-<dt id="small_data_metrics.config.Newt.exclude_clusters"><code class="name">var <span class="ident">exclude_clusters</span> : list[str] | None</code></dt>
+<dt id="mindthegap.config.Newt.exclude_clusters"><code class="name">var <span class="ident">exclude_clusters</span> : list[str] | None</code></dt>
 <dd>
 <div class="desc"><p>List of cluster names to exclude even if they contain tasks that match other criteria.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Newt.exclude_subclusters"><code class="name">var <span class="ident">exclude_subclusters</span> : list[str] | None</code></dt>
+<dt id="mindthegap.config.Newt.exclude_subclusters"><code class="name">var <span class="ident">exclude_subclusters</span> : list[str] | None</code></dt>
 <dd>
 <div class="desc"><p>List of sub-cluster names to exclude even if they contain tasks that match other criteria.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Newt.exclude_tasks"><code class="name">var <span class="ident">exclude_tasks</span> : list[str] | None</code></dt>
+<dt id="mindthegap.config.Newt.exclude_tasks"><code class="name">var <span class="ident">exclude_tasks</span> : list[str] | None</code></dt>
 <dd>
 <div class="desc"><p>List of task names to exclude even if they match other criteria.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Newt.include_clusters"><code class="name">var <span class="ident">include_clusters</span> : list[str] | None</code></dt>
+<dt id="mindthegap.config.Newt.include_clusters"><code class="name">var <span class="ident">include_clusters</span> : list[str] | None</code></dt>
 <dd>
 <div class="desc"><p>List of NeWT task clusters to run (e.g., "appearance", "behavior", "context"). If None, all clusters are included.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Newt.include_subclusters"><code class="name">var <span class="ident">include_subclusters</span> : list[str] | None</code></dt>
+<dt id="mindthegap.config.Newt.include_subclusters"><code class="name">var <span class="ident">include_subclusters</span> : list[str] | None</code></dt>
 <dd>
 <div class="desc"><p>List of NeWT task sub-clusters to run (e.g., "species", "age", "health"). If None, all sub-clusters are included.</p></div>
 </dd>
-<dt id="small_data_metrics.config.Newt.tasks"><code class="name">var <span class="ident">tasks</span> : list[str] | None</code></dt>
+<dt id="mindthegap.config.Newt.tasks"><code class="name">var <span class="ident">tasks</span> : list[str] | None</code></dt>
 <dd>
 <div class="desc"><p>List of specific NeWT task names to run. If None, all tasks are included unless filtered by other criteria.</p></div>
 </dd>
@@ -428,61 +428,61 @@ class Newt:
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="small_data_metrics" href="index.html">small_data_metrics</a></code></li>
+<li><code><a title="mindthegap" href="index.html">mindthegap</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="small_data_metrics.config.load" href="#small_data_metrics.config.load">load</a></code></li>
+<li><code><a title="mindthegap.config.load" href="#mindthegap.config.load">load</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="small_data_metrics.config.Experiment" href="#small_data_metrics.config.Experiment">Experiment</a></code></h4>
+<h4><code><a title="mindthegap.config.Experiment" href="#mindthegap.config.Experiment">Experiment</a></code></h4>
 <ul class="two-column">
-<li><code><a title="small_data_metrics.config.Experiment.batch_size" href="#small_data_metrics.config.Experiment.batch_size">batch_size</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.cot_enabled" href="#small_data_metrics.config.Experiment.cot_enabled">cot_enabled</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.debug" href="#small_data_metrics.config.Experiment.debug">debug</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.device" href="#small_data_metrics.config.Experiment.device">device</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.graph" href="#small_data_metrics.config.Experiment.graph">graph</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.graph_to" href="#small_data_metrics.config.Experiment.graph_to">graph_to</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.log_to" href="#small_data_metrics.config.Experiment.log_to">log_to</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.model" href="#small_data_metrics.config.Experiment.model">model</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.n_test" href="#small_data_metrics.config.Experiment.n_test">n_test</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.n_train" href="#small_data_metrics.config.Experiment.n_train">n_train</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.n_workers" href="#small_data_metrics.config.Experiment.n_workers">n_workers</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.newt" href="#small_data_metrics.config.Experiment.newt">newt</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.newt_root" href="#small_data_metrics.config.Experiment.newt_root">newt_root</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.parallel" href="#small_data_metrics.config.Experiment.parallel">parallel</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.prompting" href="#small_data_metrics.config.Experiment.prompting">prompting</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.report_to" href="#small_data_metrics.config.Experiment.report_to">report_to</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.sampling" href="#small_data_metrics.config.Experiment.sampling">sampling</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.seed" href="#small_data_metrics.config.Experiment.seed">seed</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.slurm" href="#small_data_metrics.config.Experiment.slurm">slurm</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.slurm_acct" href="#small_data_metrics.config.Experiment.slurm_acct">slurm_acct</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.ssl" href="#small_data_metrics.config.Experiment.ssl">ssl</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.temp" href="#small_data_metrics.config.Experiment.temp">temp</a></code></li>
-<li><code><a title="small_data_metrics.config.Experiment.to_dict" href="#small_data_metrics.config.Experiment.to_dict">to_dict</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.batch_size" href="#mindthegap.config.Experiment.batch_size">batch_size</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.cot_enabled" href="#mindthegap.config.Experiment.cot_enabled">cot_enabled</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.debug" href="#mindthegap.config.Experiment.debug">debug</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.device" href="#mindthegap.config.Experiment.device">device</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.graph" href="#mindthegap.config.Experiment.graph">graph</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.graph_to" href="#mindthegap.config.Experiment.graph_to">graph_to</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.log_to" href="#mindthegap.config.Experiment.log_to">log_to</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.model" href="#mindthegap.config.Experiment.model">model</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.n_test" href="#mindthegap.config.Experiment.n_test">n_test</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.n_train" href="#mindthegap.config.Experiment.n_train">n_train</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.n_workers" href="#mindthegap.config.Experiment.n_workers">n_workers</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.newt" href="#mindthegap.config.Experiment.newt">newt</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.newt_root" href="#mindthegap.config.Experiment.newt_root">newt_root</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.parallel" href="#mindthegap.config.Experiment.parallel">parallel</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.prompting" href="#mindthegap.config.Experiment.prompting">prompting</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.report_to" href="#mindthegap.config.Experiment.report_to">report_to</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.sampling" href="#mindthegap.config.Experiment.sampling">sampling</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.seed" href="#mindthegap.config.Experiment.seed">seed</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.slurm" href="#mindthegap.config.Experiment.slurm">slurm</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.slurm_acct" href="#mindthegap.config.Experiment.slurm_acct">slurm_acct</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.ssl" href="#mindthegap.config.Experiment.ssl">ssl</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.temp" href="#mindthegap.config.Experiment.temp">temp</a></code></li>
+<li><code><a title="mindthegap.config.Experiment.to_dict" href="#mindthegap.config.Experiment.to_dict">to_dict</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="small_data_metrics.config.Model" href="#small_data_metrics.config.Model">Model</a></code></h4>
+<h4><code><a title="mindthegap.config.Model" href="#mindthegap.config.Model">Model</a></code></h4>
 <ul class="">
-<li><code><a title="small_data_metrics.config.Model.ckpt" href="#small_data_metrics.config.Model.ckpt">ckpt</a></code></li>
-<li><code><a title="small_data_metrics.config.Model.method" href="#small_data_metrics.config.Model.method">method</a></code></li>
-<li><code><a title="small_data_metrics.config.Model.org" href="#small_data_metrics.config.Model.org">org</a></code></li>
+<li><code><a title="mindthegap.config.Model.ckpt" href="#mindthegap.config.Model.ckpt">ckpt</a></code></li>
+<li><code><a title="mindthegap.config.Model.method" href="#mindthegap.config.Model.method">method</a></code></li>
+<li><code><a title="mindthegap.config.Model.org" href="#mindthegap.config.Model.org">org</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="small_data_metrics.config.Newt" href="#small_data_metrics.config.Newt">Newt</a></code></h4>
+<h4><code><a title="mindthegap.config.Newt" href="#mindthegap.config.Newt">Newt</a></code></h4>
 <ul class="two-column">
-<li><code><a title="small_data_metrics.config.Newt.exclude_clusters" href="#small_data_metrics.config.Newt.exclude_clusters">exclude_clusters</a></code></li>
-<li><code><a title="small_data_metrics.config.Newt.exclude_subclusters" href="#small_data_metrics.config.Newt.exclude_subclusters">exclude_subclusters</a></code></li>
-<li><code><a title="small_data_metrics.config.Newt.exclude_tasks" href="#small_data_metrics.config.Newt.exclude_tasks">exclude_tasks</a></code></li>
-<li><code><a title="small_data_metrics.config.Newt.include_clusters" href="#small_data_metrics.config.Newt.include_clusters">include_clusters</a></code></li>
-<li><code><a title="small_data_metrics.config.Newt.include_subclusters" href="#small_data_metrics.config.Newt.include_subclusters">include_subclusters</a></code></li>
-<li><code><a title="small_data_metrics.config.Newt.tasks" href="#small_data_metrics.config.Newt.tasks">tasks</a></code></li>
+<li><code><a title="mindthegap.config.Newt.exclude_clusters" href="#mindthegap.config.Newt.exclude_clusters">exclude_clusters</a></code></li>
+<li><code><a title="mindthegap.config.Newt.exclude_subclusters" href="#mindthegap.config.Newt.exclude_subclusters">exclude_subclusters</a></code></li>
+<li><code><a title="mindthegap.config.Newt.exclude_tasks" href="#mindthegap.config.Newt.exclude_tasks">exclude_tasks</a></code></li>
+<li><code><a title="mindthegap.config.Newt.include_clusters" href="#mindthegap.config.Newt.include_clusters">include_clusters</a></code></li>
+<li><code><a title="mindthegap.config.Newt.include_subclusters" href="#mindthegap.config.Newt.include_subclusters">include_subclusters</a></code></li>
+<li><code><a title="mindthegap.config.Newt.tasks" href="#mindthegap.config.Newt.tasks">tasks</a></code></li>
 </ul>
 </li>
 </ul>
