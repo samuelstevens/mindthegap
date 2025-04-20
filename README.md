@@ -1,6 +1,19 @@
 # Mind the Gap: Evaluating Vision Systems in Small Data Applications
 
-Reproducing our work:
+> Code to reproduce our findings in [Mind the Gap: Evaluating Vision Systems in Small Data Applications](https://arxiv.org/abs/2504.06486).
+
+We looked a lot of recent AI methods papers (DINOv2, Gemini Flash 1.5, Claude Sonnet 3.7, V-JEPA, etc) and measured how many training samples were used in each reported evaluation task.
+We found that *no papers use any tasks between 100 and 1K training samples*.
+
+| ![Evaluations](https://raw.githubusercontent.com/samuelstevens/mindthegap/main/docs/assets/tasks.png) |
+|:--:|
+| Image Credit: [arxiv.org/pdf/2504.06486](https://arxiv.org/pdf/2504.06486) |
+
+We decided to use [NeWT](https://github.com/visipedia/newt/tree/main) to evaluate recent AI methods in this regime of 100-1K training samples and reported our findings.
+
+---
+
+To reproduce our work, follow the instructions below:
 
 With [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
 

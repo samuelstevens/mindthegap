@@ -1,6 +1,8 @@
+
+
 import marimo
 
-__generated_with = "0.11.17"
+__generated_with = "0.13.0"
 app = marimo.App(width="medium")
 
 
@@ -23,15 +25,10 @@ def _():
     if "." not in sys.path:
         sys.path.append(".")
     from mindthegap import config, mllms, newt, reporting
-
     return (
         beartype,
-        config,
         dataclasses,
         json,
-        math,
-        mllms,
-        mo,
         mpl,
         newt,
         np,
@@ -40,7 +37,6 @@ def _():
         random,
         reporting,
         sqlite3,
-        sys,
     )
 
 
@@ -51,16 +47,7 @@ def _(sqlite3):
 
 
 @app.cell
-def _(mo):
-    refresh_button = mo.ui.run_button()
-    refresh_button
-    return (refresh_button,)
-
-
-@app.cell
-def _(conn, mo, pl, refresh_button):
-    mo.stop(not refresh_button.value)
-
+def _(conn, pl):
     bin_edges = [0, 1, 3, 10, 30, 100, 200, 300, 400, 500, 600]
 
     preds_df = pl.read_database(
@@ -72,7 +59,7 @@ def _(conn, mo, pl, refresh_button):
         .cut(bin_edges, include_breaks=True, left_closed=False)
         .struct.field("breakpoint")
     )
-    return bin_edges, preds_df
+    return (preds_df,)
 
 
 @app.cell
@@ -99,11 +86,14 @@ def _(beartype, np, pl):
             "ci_upper": ci_upper,
         }
 
-    BootstrapResult = pl.Struct([
-        pl.Field("mean", pl.Float64),
-        pl.Field("ci_lower", pl.Float64),
-        pl.Field("ci_upper", pl.Float64),
-    ])
+
+    BootstrapResult = pl.Struct(
+        [
+            pl.Field("mean", pl.Float64),
+            pl.Field("ci_lower", pl.Float64),
+            pl.Field("ci_upper", pl.Float64),
+        ]
+    )
     return BootstrapResult, bootstrap
 
 
@@ -121,9 +111,7 @@ def _(beartype, bootstrap, newt, pl, random):
         random_scores = {}
 
         for task_cluster, task_subcluster, n in (
-            df.group_by("task_cluster", "task_subcluster")
-            .agg(pl.col("id").count())
-            .rows()
+            df.group_by("task_cluster", "task_subcluster").agg(pl.col("id").count()).rows()
         ):
             scores = [0 if rng.random() > 0.5 else 1 for _ in range(n)]
             bootstrapped = bootstrap(scores)
@@ -143,8 +131,9 @@ def _(beartype, bootstrap, newt, pl, random):
 
         return random_scores
 
+
     random_scores = get_random_scores()
-    return get_random_scores, random_scores
+    return (random_scores,)
 
 
 @app.cell
@@ -155,7 +144,6 @@ def _(beartype, dataclasses):
         label: str
         color: tuple[float, float, float]
         linestyle: str | tuple[int, tuple[int, int]]
-
     return (Line,)
 
 
@@ -191,9 +179,7 @@ def _(
             preds_df.lazy()
             .drop("n_train")
             .filter(pl.col("model_ckpt").is_in(models.keys()))
-            .group_by(
-                "task_cluster", "task_subcluster", "n_train_bucketed", "model_ckpt"
-            )
+            .group_by("task_cluster", "task_subcluster", "n_train_bucketed", "model_ckpt")
             .all()
             .with_columns(
                 pl.col("score")
@@ -306,8 +292,9 @@ def _(
         fig.savefig("results/main.pdf")
         return fig
 
+
     make_main_fig()
-    return (make_main_fig,)
+    return
 
 
 @app.cell
@@ -380,9 +367,7 @@ def _(
                 alpha=0.8,
                 linestyle=line.linestyle,
             )
-            ax.fill_between(
-                xs, lowers, uppers, alpha=0.2, color=line.color, linewidth=0
-            )
+            ax.fill_between(xs, lowers, uppers, alpha=0.2, color=line.color, linewidth=0)
 
             if min(xs) != 0:
                 # ViT, plot random chance
@@ -421,8 +406,9 @@ def _(
         fig.savefig("results/hook.pdf")
         return fig
 
+
     make_hook_fig()
-    return (make_hook_fig,)
+    return
 
 
 @app.cell
@@ -498,11 +484,13 @@ def _(
             .with_columns(
                 score_boot=pl.col("score").map_elements(
                     bootstrap,
-                    return_dtype=pl.Struct([
-                        pl.Field("mean", pl.Float64),
-                        pl.Field("ci_lower", pl.Float64),
-                        pl.Field("ci_upper", pl.Float64),
-                    ]),
+                    return_dtype=pl.Struct(
+                        [
+                            pl.Field("mean", pl.Float64),
+                            pl.Field("ci_lower", pl.Float64),
+                            pl.Field("ci_upper", pl.Float64),
+                        ]
+                    ),
                 ),
                 cost_usd=pl.col("cost_usd").list.mean(),
             )
@@ -557,8 +545,9 @@ def _(
         fig.savefig("results/mllm_costs.pdf")
         return fig
 
+
     make_mllm_cost_fig()
-    return (make_mllm_cost_fig,)
+    return
 
 
 @app.cell
@@ -570,21 +559,21 @@ def _(beartype, dataclasses, mpl, pl, plt, reporting):
         color: tuple[float, float, float]
         hatch: str | None = None
 
+
     def make_hist():
         df = (
-            pl.read_csv("docs/existing-work.csv")
+            pl.read_csv("data/existing-work.csv")
             .with_columns(
-                size=pl.col("size").str.replace_all("_", "").str.to_integer(strict=True)
-                + 1
+                size=pl.col("size").str.replace_all("_", "").str.to_integer(strict=True) + 1
             )
             .with_columns(logsize=pl.col("size").log10())
         )
         sizes = df.get_column("logsize").to_numpy()
         largest = 8
 
-        for name in sorted([
-            b.lower() for b in df.get_column("benchmark").unique().to_list()
-        ]):
+        for name in sorted(
+            [b.lower() for b in df.get_column("benchmark").unique().to_list()]
+        ):
             print(name)
 
         fig, ax = plt.subplots(figsize=(5, 3), dpi=300)
@@ -638,10 +627,12 @@ def _(beartype, dataclasses, mpl, pl, plt, reporting):
 
         fig.tight_layout(pad=0.0)
         fig.savefig("results/tasks.pdf")
+        fig.savefig("docs/assets/tasks.png")
         return fig
 
+
     make_hist()
-    return Patch, make_hist
+    return
 
 
 @app.cell
@@ -656,8 +647,9 @@ def _(pl):
         )
         return clip_df
 
+
     flops_df = get_flops()
-    return flops_df, get_flops
+    return (flops_df,)
 
 
 @app.cell
@@ -680,11 +672,13 @@ def _(Line, bootstrap, flops_df, pl, plt, preds_df, reporting):
                 pl.col("score")
                 .map_elements(
                     bootstrap,
-                    return_dtype=pl.Struct([
-                        pl.Field("mean", pl.Float64),
-                        pl.Field("ci_lower", pl.Float64),
-                        pl.Field("ci_upper", pl.Float64),
-                    ]),
+                    return_dtype=pl.Struct(
+                        [
+                            pl.Field("mean", pl.Float64),
+                            pl.Field("ci_lower", pl.Float64),
+                            pl.Field("ci_upper", pl.Float64),
+                        ]
+                    ),
                 )
                 .alias("boot")
             )
@@ -723,9 +717,7 @@ def _(Line, bootstrap, flops_df, pl, plt, preds_df, reporting):
                 alpha=0.8,
                 linestyle=line.linestyle,
             )
-            ax.fill_between(
-                xs, lowers, uppers, alpha=0.2, color=line.color, linewidth=0
-            )
+            ax.fill_between(xs, lowers, uppers, alpha=0.2, color=line.color, linewidth=0)
 
             ax.set_ylim(0.45, 1.0)
 
@@ -738,8 +730,9 @@ def _(Line, bootstrap, flops_df, pl, plt, preds_df, reporting):
         fig.savefig("results/flops.pdf")
         return fig
 
+
     make_flops_fig()
-    return (make_flops_fig,)
+    return
 
 
 @app.cell
@@ -817,9 +810,7 @@ def _(BootstrapResult, bootstrap, np, pl, plt, preds_df, reporting):
 
         ys = vision_df.get_column("mean").to_numpy()
         yerr = np.abs(ys - vision_df.select("ci_lower", "ci_upper").to_numpy().T)
-        ax.bar(
-            xs - width / 2, ys, width, label="Vision Only", color=reporting.RUST_RGB01
-        )
+        ax.bar(xs - width / 2, ys, width, label="Vision Only", color=reporting.RUST_RGB01)
         ax.errorbar(xs - width / 2, ys, yerr, **errorbar_kwargs)
 
         lang_df = get_df(lang_ckpts)
@@ -858,8 +849,9 @@ def _(BootstrapResult, bootstrap, np, pl, plt, preds_df, reporting):
 
         return fig
 
+
     make_pretraining_fig()
-    return (make_pretraining_fig,)
+    return
 
 
 @app.cell
@@ -987,8 +979,9 @@ def _(BootstrapResult, bootstrap, np, pl, plt, preds_df, reporting):
 
         return fig
 
+
     make_pretraining_fig_app()
-    return (make_pretraining_fig_app,)
+    return
 
 
 @app.cell
@@ -1043,9 +1036,7 @@ def _(BootstrapResult, bootstrap, pl, preds_df):
         df = (
             preds_df.lazy()
             .filter(pl.col("model_ckpt").is_in(models))
-            .group_by(
-                "task_cluster", "task_subcluster", "model_ckpt", "n_train_bucketed"
-            )
+            .group_by("task_cluster", "task_subcluster", "model_ckpt", "n_train_bucketed")
             .all()
             .with_columns(
                 pl.col("score")
@@ -1116,8 +1107,9 @@ def _(BootstrapResult, bootstrap, pl, preds_df):
     """.strip()
             )
 
+
     make_tables()
-    return (make_tables,)
+    return
 
 
 if __name__ == "__main__":

@@ -1,0 +1,262 @@
+model,benchmark,size
+DINOv2,ImageNet-1K,1_281_167
+DINOv2,ImageNet-Adversarial,1_281_167
+DINOv2,ADE-20K,20_000
+DINOv2,iNat2018,579_184
+DINOv2,iNat2021,2_700_000
+DINOv2,Places205,2_500_000
+DINOv2,Kinetics400,245_495
+DINOv2,UCF101,9_537
+DINOv2,SomethingSomethingV2,168_913
+DINOv2,Cityscapes,2_975
+DINOv2,Pascal VOC 2012,5_717
+DINOv2,Food-101,75_750
+DINOv2,CIFAR-10,50_000
+DINOv2,CIFAR-100,50_000
+DINOv2,SUN397,19_850
+DINOv2,Stanford Cars,8_144
+DINOv2,FGCV Aircraft,6_667
+DINOv2,Pascal VOC 2007,5_011
+DINOv2,Textures,3_760
+DINOv2,Oxford-IIIT Pets,3_680
+DINOv2,Caltech-101,3_060
+DINOv2,Oxford Flowers 102,2_040
+DINOv2,KITTI,6_770
+SigLIP,ImageNet-1K,0
+SigLIP,ImageNet-1K,10_000
+SigLIP2,ImageNet-1K,0
+SigLIP2,ImageNet-1K,10_000
+SigLIP2,AI2 Diagram,12_413
+SigLIP2,AOKVQA-DA,18_201
+SigLIP2,AOKVQA-MC,18_201
+SigLIP2,COCO-35L (avg43),113_287
+SigLIP2,COCO-35L (en),113_287
+SigLIP2,COCOCap,113_287
+SigLIP2,CountBenchQA,0
+SigLIP2,DocVQA,44_812
+SigLIP2,GQA,1_075_062
+SigLIP2,InfoVQA,26_747
+SigLIP2,NLVR2,93_355
+SigLIP2,NoCaps,0
+SigLIP2,OCR-VQA,901_717
+SigLIP2,OKVQA,9_009
+SigLIP2,ST-VQA,26_074
+SigLIP2,SciCap,120_188
+SigLIP2,ScienceQA,8_315
+SigLIP2,Screen2Words,18_107
+SigLIP2,TallyQA (complex),249_318
+SigLIP2,TallyQA (simple),249_318
+SigLIP2,TextCaps,21_953
+SigLIP2,TextVQA,34_602
+SigLIP2,VQAv2,658_111
+SigLIP2,VizWizVQA,24_842
+SigLIP2,WidgetCap,44_704
+SigLIP2,XM3600 (avg35),0
+SigLIP2,XM3600 (en),0
+CLIP,aYahoo,0
+CLIP,SUN397,0
+CLIP,Food-101,75_750
+CLIP,CIFAR-10,50_000
+CLIP,CIFAR-100,50_000
+CLIP,Birdsnap,42_283
+CLIP,SUN397,19_850
+CLIP,Stanford Cars,8_144
+CLIP,FGCV Aircraft,6_667
+CLIP,Pascal VOC 2007,5_011
+CLIP,Textures,3_760
+CLIP,Oxford-IIIT Pets,3_680
+CLIP,Caltech-101,3_060
+CLIP,Oxford Flowers 102,2_040
+CLIP,MNIST,60_000
+CLIP,Facial Emotion Recognition 2013,32_140
+CLIP,STL-10,1_000
+CLIP,EuroSAT,10_000
+CLIP,RESISC45,3_150
+CLIP,GTSRB,26_640
+CLIP,KITTI,6_770
+CLIP,Country211,43_200
+CLIP,PatchCamelyon,294_912
+CLIP,UCF101,9_537
+CLIP,Kinetics700,494_801
+CLIP,CLEVR Counts,2_000
+CLIP,Hateful Memes,8_500
+CLIP,Rendered SST2,7_792
+CLIP,ImageNet-1K,1_281_167
+CLIP,Food-101,0
+CLIP,CIFAR-10,0
+CLIP,CIFAR-100,0
+CLIP,Birdsnap,0
+CLIP,SUN397,0
+CLIP,Stanford Cars,0
+CLIP,FGCV Aircraft,0
+CLIP,Pascal VOC 2007,0
+CLIP,Textures,0
+CLIP,Oxford-IIIT Pets,0
+CLIP,Caltech-101,0
+CLIP,Oxford Flowers 102,0
+CLIP,MNIST,0
+CLIP,Facial Emotion Recognition 2013,0
+CLIP,STL-10,0
+CLIP,EuroSAT,0
+CLIP,RESISC45,0
+CLIP,GTSRB,0
+CLIP,KITTI,0
+CLIP,Country211,0
+CLIP,PatchCamelyon,0
+CLIP,UCF101,0
+CLIP,Kinetics700,0
+CLIP,CLEVR Counts,0
+CLIP,Hateful Memes,0
+CLIP,Rendered SST2,0
+CLIP,ImageNet-1K,0
+Gemini Flash 1.5 8B,GPQA,0
+Gemini Flash 1.5 8B,MATH,4
+Gemini Flash 1.5 8B,BigBench-Hard,3
+Gemini Flash 1.5 8B,MMLU,5
+Gemini Flash 1.5 8B,Natural2Code,0
+Gemini Flash 1.5 8B,MGSM,8
+Gemini Flash 1.5 8B,Covost 2,0
+Gemini Flash 1.5 8B,MMMU,4
+Gemini Flash 1.5 8B,DocVQA,0
+Gemini Flash 1.5 8B,TextVQA,0
+Gemini Flash 1.5 8B,VATEX,4
+Claude Sonnet 3.5,GPQA Diamond,0
+Claude Sonnet 3.5,MMLU,0
+Claude Sonnet 3.5,MMLU,5
+Claude Sonnet 3.5,HumanEval,0
+Claude Sonnet 3.5,MGSM,0
+Claude Sonnet 3.5,DROP,3
+Claude Sonnet 3.5,BigBench-Hard,3
+Claude Sonnet 3.5,MATH,0
+Claude Sonnet 3.5,GSM8K,0
+Llama 3.2,MMMU,0
+Llama 3.2,MMMU-Pro,0
+Llama 3.2,MathVista,0
+Llama 3.2,ChartQA,0
+Llama 3.2,AI2 Diagram,0
+Llama 3.2,DocVQA,0
+Llama 3.2,VQAv2,0
+Phi-4-Mini,BigBench-Hard,0
+Phi-4-Mini,MMLU,5
+Phi-4-Mini,MMLU-Pro,0
+Phi-4-Mini,ARC-C,10
+Phi-4-Mini,BoolQ,2
+Phi-4-Mini,GPQA,0
+Phi-4-Mini,HellaSwag,5
+Phi-4-Mini,OpenBookQA,10
+Phi-4-Mini,PIQA,5
+Phi-4-Mini,SIQA,5
+Phi-4-Mini,TruthfulQA,10
+Phi-4-Mini,WinoGrande,5
+Phi-4-Mini,Multilingual-MMLU,5
+Phi-4-Mini,MGSM,0
+Phi-4-Mini,GSM8K,8
+Phi-4-Mini,MATH,0
+Phi-4-Mini,Qasper,0
+Phi-4-Mini,SQuALITY,0
+Phi-4-Mini,IFEval,0
+Phi-4-Mini,BFCL,0
+Phi-4-Mini,HumanEval,0
+Phi-4-Mini,MBPP,3
+Gemma 3,MMLU-Pro,0
+Gemma 3,LiveCodeBench,0
+Gemma 3,Bird-SQL (dev),0
+Gemma 3,GPQA Diamond,0
+Gemma 3,SimpleQA,0
+Gemma 3,FACTS Grounding,0
+Gemma 3,MATH,0
+Gemma 3,HiddenMath,0
+Gemma 3,MMMU,0
+Gemma 3,DocVQA,4
+Gemma 3,InfoVQA,4
+Gemma 3,TextVQA,4
+Gemma 3,MBPP,3
+Gemma 3,HumanEval,0
+Gemma 3,HellaSwag,10
+Gemma 3,BoolQ,0
+Gemma 3,PIQA,0
+Gemma 3,SIQA,0
+Gemma 3,TriviaQA,5
+Gemma 3,Natural Questions,5
+Gemma 3,ARC-C,25
+Gemma 3,ARC-E,0
+Gemma 3,WinoGrande,5
+Gemma 3,BigBench-Hard,3
+Gemma 3,DROP,1
+Gemma 3,AGIEval,5
+Gemma 3,MMLU,5
+Gemma 3,MATH,4
+Gemma 3,GSM8K,8
+Gemma 3,GPQA,5
+Gemma 3,MMLU-Pro,5
+Gemma 3,MGSM,8
+Gemma 3,FloRes,1
+Gemma 3,XQuAD,5
+Gemma 3,WMT24++,5
+Gemma 3,ECLeKTic,2
+Gemma 3,XQuAD Indic,5
+Gemma 3,XOR QA IN-EN,5
+Gemma 3,XOR QA IN-XX,5
+Gemma 3,FloRes Indic,5
+Gemma 3,RULER,0
+OLMo 2,ARC-C,5
+OLMo 2,ARC-E,5
+OLMo 2,BoolQ,5
+OLMo 2,CommonsenseQA,5
+OLMo 2,HellaSwag,5
+OLMo 2,MMLU,5
+OLMo 2,OpenbookQA,5
+OLMo 2,PIQA,5
+OLMo 2,SIQA,5
+OLMo 2,WinoGrande,5
+OLMo 2,CoQA,0
+OLMo 2,DROP,5
+OLMo 2,Jeopardy,5
+OLMo 2,Natural Questions,5
+OLMo 2,SQuAD,5
+OLMo 2,AGIEval,5
+OLMo 2,BigBench-Hard,3
+OLMo 2,GSM8K,8
+OLMo 2,MMLU-Pro,5
+OLMo 2,TriviaQA,5
+Llama 3,MMLU,0
+Llama 3,MMLU,5
+Llama 3,MMLU-Pro,5
+Llama 3,IFEval,0
+Llama 3,HumanEval,0
+Llama 3,MBPP+,0
+Llama 3,GSM8K,8
+Llama 3,MATH,0
+Llama 3,ARC-C,0
+Llama 3,GPQA,0
+Llama 3,MSGM,0
+Tulu 3,MMLU,0
+Tulu 3,PopQA,15
+Tulu 3,TruthfulQA,6
+Tulu 3,BigBench-Hard,3
+Tulu 3,DROP,3
+Tulu 3,MATH,4
+Tulu 3,GSM8K,8
+Tulu 3,HumanEval,0
+Tulu 3,HumanEval+,0
+Tulu 3,IFEval,0
+AIMv2,ImageNet-1K,1_281_167
+AIMv2,iNat2018,437_513
+AIMv2,CIFAR-10,50_000
+AIMv2,CIFAR-100,50_000
+AIMv2,Food-101,75_750
+AIMv2,Textures,3_760
+AIMv2,Oxford-IIIT Pets,3_680
+AIMv2,Stanford Cars,8_144
+AIMv2,Chamelyon17,302_436
+AIMv2,PCAM,262_144
+AIMv2,RxRx1,40_612
+AIMv2,EuroSAT,16_200
+AIMv2,fMoW,76_863
+AIMv2,Infograph,36_023
+V-JEPA,ImageNet-1K,1_281_167
+V-JEPA,Kinetics400,245_495
+V-JEPA,SomethingSomethingV2,168_913
+V-JEPA,Places205,2_500_000
+V-JEPA,iNat2021,2_700_000
+V-JEPA,AVA,211_000
