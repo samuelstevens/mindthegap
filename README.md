@@ -14,7 +14,7 @@ We found that *no papers use any tasks between 100 and 1K training samples*.
 
 We decided to use [NeWT](https://github.com/visipedia/newt/tree/main) to evaluate recent AI methods in this regime of 100-1K training samples and reported our findings.
 
-If you want our raw data, you can download it from [`data/results.sqlite.gz`](data/results.sqlite.gz)
+If you want our raw data, you can download it: [`data/results.sqlite.gz`](data/results.sqlite.gz) (96 MB) and [`data/existing-work.csv`](data/existing-work.csv) (5 KB).
 Unzip the sqlite3 file and move it to `results/`, then run the below scripts.
 
 ---
